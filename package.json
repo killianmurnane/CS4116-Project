@@ -1,0 +1,13 @@
+{
+  "name": "cs4116-project",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"**/*.{html,css,js,php}\"",
+    "format:check": "prettier --check \"**/*.{html,css,js,php}\""
+  },
+  "devDependencies": {
+    "@prettier/plugin-php": "^0.24.0",
+    "prettier": "^3.8.1"
+  }
+}

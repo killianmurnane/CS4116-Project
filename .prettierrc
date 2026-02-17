@@ -1,0 +1,15 @@
+{
+  "plugins": ["@prettier/plugin-php"],
+  "printWidth": 100,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "overrides": [
+    {
+      "files": "*.php",
+      "options": {
+        "parser": "php"
+      }
+    }
+  ]
+}
