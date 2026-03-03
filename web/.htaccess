@@ -1,0 +1,17 @@
+Options -Indexes
+
+ErrorDocument 403 /404.html
+ErrorDocument 404 /404.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  RewriteRule "(^|/)\." - [F,L]
+  RewriteRule "(^|/)(node_modules|\.git|\.vscode)(/|$)" - [F,L]
+  RewriteRule "(^|/)(package\.json|package-lock\.json|\.npmrc|\.prettierrc|\.prettierignore)$" - [F,L]
+
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^profile/?$ profile.php [L,QSA,NC]
+  RewriteRule ^profile/([^/]+)/?$ profile.php?userId=$1 [L,QSA,NC]
+</IfModule>

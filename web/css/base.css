@@ -1,0 +1,93 @@
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar {
+  width: 240px;
+  background-color: #212529;
+  color: #ffffff;
+  padding: 2rem 1rem;
+}
+
+.sidebar-title {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  padding-left: 0.5rem;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.menu-item {
+  color: #dee2e6;
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.menu-item:hover,
+.menu-item.active {
+  background-color: #343a40;
+  color: #ffffff;
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  background-color: #ffffff;
+  margin: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.top-rectangle {
+  width: 70%;
+  min-height: 140px;
+  margin: 0 auto;
+  border: 2px solid #ced4da;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #495057;
+  background-color: #f8f9fa;
+}
+
+.bottom-split {
+  flex: 1;
+  display: flex;
+  gap: 1.5rem;
+  min-height: 0;
+}
+
+.split-panel {
+  flex: 1;
+  border: 2px solid #ced4da;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #495057;
+  background-color: #f8f9fa;
+}
