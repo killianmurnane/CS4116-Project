@@ -125,7 +125,7 @@ if ($gender !== '') {
                         <!-- TODO (likes table): show likes/mutual likes once LikeRepository exists. -->
 
                         <?php if ($ownProfile): ?>
-                            <button class="btn btn-dark mt-auto" type="button">Edit Profile</button>
+                          <a class="btn btn-dark mt-auto" href="/edit-profile.php">Edit Profile</a>
                         <?php endif; ?>
                     </div>
                 </section>

@@ -67,7 +67,7 @@ if ($hasFilters) {
                TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) AS age
         FROM users u
         JOIN profiles p ON u.user_id = p.user_id
-        WHERE u.type != 'banned'
+        WHERE u.type != 'banned' AND p.user_id IS NOT NULL AND u.user_id != {$_SESSION['user_id']}
         ORDER BY u.created_at DESC
     ");
   $users = $stmt->fetchAll();
@@ -166,7 +166,7 @@ if ($hasFilters) {
                         <?php else: ?>
                             <div class="w-100 d-flex flex-column gap-2">
                                 <?php foreach ($users as $user): ?>
-                                    <a href="/profile/<?= $user[
+                                    <a href="/profile.php/<?= $user[
                                       'user_id'
                                     ] ?>" class="text-decoration-none">
                                         <div class="border rounded p-3 bg-white">

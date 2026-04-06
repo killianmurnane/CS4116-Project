@@ -14,9 +14,4 @@ ErrorDocument 404 /404.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^profile/?$ profile.php [L,QSA,NC]
-  RewriteRule ^profile/([^/]+)/?$ profile.php?userId=$1 [L,QSA,NC]
-
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^user/([^/]+)/?$ profile.php?userId=$1 [L,QSA,NC]
 </IfModule>
