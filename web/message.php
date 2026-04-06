@@ -1,3 +1,9 @@
+<!DOCTYPE html>
+<?php
+require __DIR__ . '/helpers/init.php';
+require __DIR__ . '/helpers/auth.php';
+requireLogin();
+?>
 <html>
     <head>
         <!-- CSS -->
@@ -17,6 +23,7 @@
                     <a class="menu-item active" href="#">Messages</a>
                     <a class="menu-item" href="/search.php">Search</a>
                     <a class="menu-item" href="/profile.php">Profile</a>
+                    <a class="menu-item" href="/helpers/auth.php?action=logout">Logout</a>
                 </nav>
             </aside>
 

@@ -15,9 +15,7 @@ class ProfileRepository
 
   public function createProfile(int $userId, DateTime $dob)
   {
-    $stmt = $this->pdo->prepare(
-      'INSERT INTO profiles (user_id, dob, created_at) VALUES (:userId, :dob, CURRENT_TIMESTAMP)',
-    );
+    $stmt = $this->pdo->prepare('INSERT INTO profiles (user_id, dob) VALUES (:userId, :dob)');
     $stmt->execute([
       'userId' => $userId,
       'dob' => $dob->format('Y-m-d'),

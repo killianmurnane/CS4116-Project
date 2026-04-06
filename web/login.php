@@ -1,249 +1,137 @@
+<!DOCTYPE html>
 <?php
+require __DIR__ . '/helpers/init.php';
 
-declare(strict_types=1);
-
-$pdo = require __DIR__ . '/database/sql.php';
-
-$loginError = null;
-$registerError = null;
-$registerSuccess = null;
-$activeForm = 'login';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $action = $_POST['action'] ?? 'login';
-  $activeForm = $action === 'register' ? 'register' : 'login';
-
-  if ($action === 'login') {
-    $email = trim((string) ($_POST['email'] ?? ''));
-    $password = (string) ($_POST['password'] ?? '');
-
-    if ($email === '' || $password === '') {
-      $loginError = 'Email and password are required.';
-    } else {
-      $stmt = $pdo->prepare(
-        'SELECT user_id, email, password FROM users WHERE email = :email LIMIT 1',
-      );
-      $stmt->execute(['email' => $email]);
-      $user = $stmt->fetch();
-
-      if (!$user || !password_verify($password, (string) $user['password'])) {
-        $loginError = 'Invalid email or password.';
-      } else {
-        if (session_status() === PHP_SESSION_NONE) {
-          session_start();
-        }
-
-        $_SESSION['user_id'] = (int) $user['user_id'];
-        $_SESSION['user_email'] = (string) $user['email'];
-
-        header('Location: /');
-        exit();
-      }
-    }
-  }
-
-  if ($action === 'register') {
-    $email = trim((string) ($_POST['register_email'] ?? ''));
-    $password = (string) ($_POST['register_password'] ?? '');
-    $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
-    $dobRaw = trim((string) ($_POST['dob'] ?? ''));
-
-    if ($email === '' || $password === '' || $confirmPassword === '') {
-      $registerError = 'Email, password and confirm password are required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-      $registerError = 'Please enter a valid email address.';
-    } elseif (strlen($password) < 8) {
-      $registerError = 'Password must be at least 8 characters long.';
-    } elseif ($password !== $confirmPassword) {
-      $registerError = 'Passwords do not match.';
-    } else {
-      $checkStmt = $pdo->prepare('SELECT user_id FROM users WHERE email = :email LIMIT 1');
-      $checkStmt->execute(['email' => $email]);
-
-      if ($checkStmt->fetch()) {
-        $registerError = 'An account with this email already exists.';
-      } else {
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-        try {
-          $pdo->beginTransaction();
-
-          $insertUserStmt = $pdo->prepare(
-            'INSERT INTO users (email, password, type, created_at) VALUES (:email, :password, :type, CURRENT_TIMESTAMP)',
-          );
-          $insertUserStmt->execute([
-            'email' => $email,
-            'password' => $hashedPassword,
-            'type' => 'standard',
-          ]);
-
-          $newUserId = (int) $pdo->lastInsertId();
-
-          if ($dobRaw !== '') {
-            $dob = DateTime::createFromFormat('Y-m-d', $dobRaw);
-
-            if ($dob !== false) {
-              try {
-                $insertProfileStmt = $pdo->prepare(
-                  'INSERT INTO profiles (user_id, dob, created_at) VALUES (:user_id, :dob, CURRENT_TIMESTAMP)',
-                );
-                $insertProfileStmt->execute([
-                  'user_id' => $newUserId,
-                  'dob' => $dob->format('Y-m-d'),
-                ]);
-              } catch (Throwable $th) {
-              }
-            }
-          }
-
-          $pdo->commit();
-          $registerSuccess = 'Registration successful. You can now log in.';
-          $activeForm = 'login';
-        } catch (Throwable $th) {
-          if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-          }
-
-          $registerError = 'Unable to register account right now.';
-        }
-      }
-    }
-  }
-}
+$activeForm = $_GET['activeForm'] ?? 'login';
+$error = $_GET['error'] ?? null;
+$unauthorized = $error === 'unauthorized';
+$success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
 ?>
 <html>
     <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
         <link rel="stylesheet" href="/css/base.css" />
+        <link rel="stylesheet" href="/css/login.css" />
         <title>GymDate</title>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     </head>
-    <body>
-        <div class="container">
-            <aside class="sidebar">
-                <h2 class="sidebar-title">GymDate</h2>
-                <nav class="menu" aria-label="Main menu">
-                    <a class="menu-item" href="/">Home</a>
-                    <a class="menu-item" href="/message.php">Messages</a>
-                    <a class="menu-item" href="/search.php">Search</a>
-                    <a class="menu-item" href="/profile.php">Profile</a>
-                    <a class="menu-item active" href="#">Login</a>
-                </nav>
-            </aside>
+    <body class="login-page">
+        <?php if ($unauthorized): ?>
+            <div class="alert alert-warning login-banner" role="alert">
+                You must be logged in to access that page.
+            </div>
+        <?php endif; ?>
+        <main class="login-shell">
+            <section class="login-card">
+                <div class="login-header">
+                    <h1 class="login-title">GymDate</h1>
+                    <p class="login-subtitle">Log in to continue or create an account to get started.</p>
+                </div>
 
-            <main class="content">
-                <section class="top-rectangle p-4">
-                    <div class="w-100">
-                        <h3 class="mb-2">Welcome to GymDate</h3>
-                        <p class="text-muted mb-3">Log in to your account or create a new one.</p>
-                        <div class="d-flex gap-2">
-                            <button id="show-login" class="btn btn-dark" type="button">Login</button>
-                            <button id="show-register" class="btn btn-outline-dark" type="button">Register</button>
+                <div class="login-toggle" role="tablist" aria-label="Login and register toggle">
+                    <button id="show-login" class="login-toggle-button login-toggle-button-active" type="button">Login</button>
+                    <button id="show-register" class="login-toggle-button" type="button">Register</button>
+                </div>
+
+                <?php if (!empty($error) && !$unauthorized): ?>
+                    <div class="alert alert-danger" role="alert"><?= htmlspecialchars(
+                      $error,
+                    ) ?></div>
+                <?php endif; ?>
+
+                <?php if (!empty($success) && $success == true): ?>
+                    <div class="alert alert-success" role="alert">
+                      Account created successfully! Please log in.
+                    </div>
+                <?php elseif (!empty($success) && $success == false): ?>
+                    <div class="alert alert-danger" role="alert">
+                      Account creation failed. Please try again.
+                    </div>
+                <?php endif; ?>
+
+                <form id="login-form" class="login-form" method="post" action="/helpers/auth.php">
+                    <input type="hidden" name="action" value="login">
+
+                    <div class="login-field">
+                        <label class="form-label" for="email">Email</label>
+                        <input class="form-control login-input" id="email" name="email" type="email" required>
+                    </div>
+
+                    <div class="login-field">
+                        <label class="form-label" for="password">Password</label>
+                        <input class="form-control login-input" id="password" name="password" type="password" required>
+                    </div>
+
+                    <button class="btn btn-dark login-submit" type="submit">Log In</button>
+                </form>
+
+                <form id="register-form" class="login-form" method="post" action="/helpers/auth.php" style="display: none;">
+                    <input type="hidden" name="action" value="register">
+
+                    <?php if (!empty($registerError)): ?>
+                        <div class="alert alert-danger" role="alert"><?= htmlspecialchars(
+                          $registerError,
+                        ) ?></div>
+                    <?php endif; ?>
+
+                    <div class="login-field">
+                        <label class="form-label" for="register_email">Email</label>
+                        <input class="form-control login-input" id="register_email" name="register_email" type="email" required>
+                    </div>
+
+                    <div class="login-field-grid">
+                        <div class="login-field">
+                            <label class="form-label" for="register_password">Password</label>
+                            <input class="form-control login-input" id="register_password" name="register_password" type="password" minlength="8" required>
+                        </div>
+
+                        <div class="login-field">
+                            <label class="form-label" for="confirm_password">Confirm Password</label>
+                            <input class="form-control login-input" id="confirm_password" name="confirm_password" type="password" minlength="8" required>
                         </div>
                     </div>
-                </section>
 
-                <section class="bottom-split">
-                    <div class="split-panel p-4 d-flex flex-column align-items-start justify-content-start">
-                        <h5 class="mb-3">Account Access</h5>
-
-                        <?php if ($loginError !== null): ?>
-                            <div class="alert alert-danger w-100" role="alert"><?= htmlspecialchars(
-                              $loginError,
-                            ) ?></div>
-                        <?php endif; ?>
-
-                        <?php if ($registerSuccess !== null): ?>
-                            <div class="alert alert-success w-100" role="alert"><?= htmlspecialchars(
-                              $registerSuccess,
-                            ) ?></div>
-                        <?php endif; ?>
-
-                        <form id="login-form" class="w-100" method="post" action="/login.php">
-                            <input type="hidden" name="action" value="login">
-
-                            <div class="mb-3">
-                                <label class="form-label" for="email">Email</label>
-                                <input class="form-control" id="email" name="email" type="email" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="password">Password</label>
-                                <input class="form-control" id="password" name="password" type="password" required>
-                            </div>
-
-                            <button class="btn btn-dark" type="submit">Log In</button>
-                        </form>
-
-                        <form id="register-form" class="w-100" method="post" action="/login.php" style="display: none;">
-                            <input type="hidden" name="action" value="register">
-
-                            <?php if ($registerError !== null): ?>
-                                <div class="alert alert-danger w-100" role="alert"><?= htmlspecialchars(
-                                  $registerError,
-                                ) ?></div>
-                            <?php endif; ?>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="register_email">Email</label>
-                                <input class="form-control" id="register_email" name="register_email" type="email" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="register_password">Password</label>
-                                <input class="form-control" id="register_password" name="register_password" type="password" minlength="8" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="confirm_password">Confirm Password</label>
-                                <input class="form-control" id="confirm_password" name="confirm_password" type="password" minlength="8" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="dob">Date of Birth</label>
-                                <input class="form-control" id="dob" name="dob" type="date">
-                            </div>
-
-                            <button class="btn btn-dark" type="submit">Create Account</button>
-                        </form>
+                    <div class="login-field">
+                        <label class="form-label" for="dob">Date of Birth</label>
+                        <input class="form-control login-input" id="dob" name="dob" type="date">
                     </div>
 
-                    <div class="split-panel p-4 d-flex flex-column align-items-start justify-content-start">
-                        <h5 class="mb-3">Why Join?</h5>
-                        <div class="w-100 d-flex flex-column gap-2">
-                            <div class="border rounded p-2 bg-white">Find local gym partners</div>
-                            <div class="border rounded p-2 bg-white">Message and plan sessions</div>
-                            <div class="border rounded p-2 bg-white">Track your fitness consistency</div>
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
+                    <button class="btn btn-dark login-submit" type="submit">Create Account</button>
+                </form>
+            </section>
+
+            <section class="login-info-panel">
+                <h2 class="login-info-title">Welcome back</h2>
+                <p class="login-info-copy">GymDate helps you find training partners, stay consistent, and keep your week organised.</p>
+
+                <div class="login-info-list">
+                    <div class="login-info-item">Find partners by goal and availability</div>
+                    <div class="login-info-item">Message and plan sessions quickly</div>
+                    <div class="login-info-item">Keep your training routine on track</div>
+                </div>
+            </section>
+        </main>
 
         <script>
             const loginForm = document.getElementById('login-form');
             const registerForm = document.getElementById('register-form');
             const showLoginButton = document.getElementById('show-login');
             const showRegisterButton = document.getElementById('show-register');
-            const activeForm = <?= json_encode($activeForm) ?>;
+            const activeForm = <?= json_encode($activeForm ?? 'login') ?>;
 
             function showLogin() {
-                loginForm.style.display = 'block';
+                loginForm.style.display = 'flex';
                 registerForm.style.display = 'none';
-                showLoginButton.classList.remove('btn-outline-dark');
-                showLoginButton.classList.add('btn-dark');
-                showRegisterButton.classList.remove('btn-dark');
-                showRegisterButton.classList.add('btn-outline-dark');
+                showLoginButton.classList.add('login-toggle-button-active');
+                showRegisterButton.classList.remove('login-toggle-button-active');
             }
 
             function showRegister() {
                 loginForm.style.display = 'none';
-                registerForm.style.display = 'block';
-                showRegisterButton.classList.remove('btn-outline-dark');
-                showRegisterButton.classList.add('btn-dark');
-                showLoginButton.classList.remove('btn-dark');
-                showLoginButton.classList.add('btn-outline-dark');
+                registerForm.style.display = 'flex';
+                showRegisterButton.classList.add('login-toggle-button-active');
+                showLoginButton.classList.remove('login-toggle-button-active');
             }
 
             showLoginButton.addEventListener('click', showLogin);

@@ -121,7 +121,7 @@ CREATE TABLE `profiles` (
   `profile_id` int NOT NULL,
   `user_id` int NOT NULL,
   `given_name` varchar(26) DEFAULT NULL,
-  `family_name` varchar(26) NOT NULL,
+  `family_name` varchar(26) DEFAULT NULL,
   `gender` enum('male','female','other') DEFAULT NULL,
   `location` varchar(255) DEFAULT NULL,
   `dob` date DEFAULT NULL,
