@@ -1,5 +1,4 @@
 <?php
-require __DIR__ . '/ProfileRepository.php';
 
 enum Type: string
 {
@@ -11,15 +10,6 @@ enum Type: string
 class UserRepository
 {
   public function __construct(private PDO $pdo) {}
-
-  public function findById(int $id): ?array
-  {
-    $stmt = $this->pdo->prepare('SELECT * FROM users WHERE user_id = :id LIMIT 1');
-    $stmt->execute(['id' => $id]);
-
-    $user = $stmt->fetch();
-    return $user ?: null;
-  }
 
   public function createUser(string $email, string $password, Type $type, DateTime $dob)
   {
@@ -36,5 +26,23 @@ class UserRepository
     $profileRepository->createProfile((int) $this->pdo->lastInsertId(), $dob);
 
     return $this->findById((int) $this->pdo->lastInsertId());
+  }
+
+  public function findById(int $id): ?array
+  {
+    $stmt = $this->pdo->prepare('SELECT * FROM users WHERE user_id = :id LIMIT 1');
+    $stmt->execute(['id' => $id]);
+
+    $user = $stmt->fetch();
+    return $user ?: null;
+  }
+
+  public function findByEmail(string $email): ?array
+  {
+    $stmt = $this->pdo->prepare('SELECT * FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute(['email' => $email]);
+
+    $user = $stmt->fetch();
+    return $user ?: null;
   }
 }

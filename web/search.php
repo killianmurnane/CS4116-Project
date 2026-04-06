@@ -1,7 +1,8 @@
+<!DOCTYPE html>
 <?php
-declare(strict_types=1);
-
-$pdo = require __DIR__ . '/database/sql.php';
+require __DIR__ . '/helpers/init.php';
+require __DIR__ . '/helpers/auth.php';
+requireLogin();
 
 // Fetch all goals for the dropdown
 $goalsStmt = $pdo->query('SELECT * FROM goals ORDER BY goal_name');
@@ -18,34 +19,34 @@ $hasFilters = $selectedGoal > 0 || $searchName !== '' || $minAge !== null || $ma
 $users = [];
 
 if ($hasFilters) {
-    $conditions = ["u.type != 'banned'", "p.user_id IS NOT NULL"];
-    $params = [];
+  $conditions = ["u.type != 'banned'", 'p.user_id IS NOT NULL'];
+  $params = [];
 
-    if ($selectedGoal > 0) {
-        $conditions[] = 'ug.goal_id = :goal_id';
-        $params['goal_id'] = $selectedGoal;
-    }
+  if ($selectedGoal > 0) {
+    $conditions[] = 'ug.goal_id = :goal_id';
+    $params['goal_id'] = $selectedGoal;
+  }
 
-    if ($searchName !== '') {
-        $conditions[] = 'p.given_name LIKE :name';
-        $params['name'] = '%' . $searchName . '%';
-    }
+  if ($searchName !== '') {
+    $conditions[] = 'p.given_name LIKE :name';
+    $params['name'] = '%' . $searchName . '%';
+  }
 
-    if ($minAge !== null) {
-        $conditions[] = 'TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) >= :min_age';
-        $params['min_age'] = $minAge;
-    }
+  if ($minAge !== null) {
+    $conditions[] = 'TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) >= :min_age';
+    $params['min_age'] = $minAge;
+  }
 
-    if ($maxAge !== null) {
-        $conditions[] = 'TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) <= :max_age';
-        $params['max_age'] = $maxAge;
-    }
+  if ($maxAge !== null) {
+    $conditions[] = 'TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) <= :max_age';
+    $params['max_age'] = $maxAge;
+  }
 
-    $whereClause = implode(' AND ', $conditions);
+  $whereClause = implode(' AND ', $conditions);
 
-    $joinType = $selectedGoal > 0 ? 'JOIN' : 'LEFT JOIN';
+  $joinType = $selectedGoal > 0 ? 'JOIN' : 'LEFT JOIN';
 
-    $sql = "
+  $sql = "
         SELECT DISTINCT u.user_id, p.given_name, p.family_name, p.location, p.description, p.dob,
                TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) AS age
         FROM users u
@@ -56,20 +57,20 @@ if ($hasFilters) {
         ORDER BY u.created_at DESC
     ";
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $users = $stmt->fetchAll();
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute($params);
+  $users = $stmt->fetchAll();
 } else {
-    // Show all users with profiles if no filter selected
-    $stmt = $pdo->query("
+  // Show all users with profiles if no filter selected
+  $stmt = $pdo->query("
         SELECT DISTINCT u.user_id, p.given_name, p.family_name, p.location, p.description, p.dob,
                TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) AS age
         FROM users u
         JOIN profiles p ON u.user_id = p.user_id
-        WHERE u.type != 'banned'
+        WHERE u.type != 'banned' AND p.user_id IS NOT NULL AND u.user_id != {$_SESSION['user_id']}
         ORDER BY u.created_at DESC
     ");
-    $users = $stmt->fetchAll();
+  $users = $stmt->fetchAll();
 }
 ?>
 <html>
@@ -91,6 +92,7 @@ if ($hasFilters) {
                     <a class="menu-item" href="/message.php">Messages</a>
                     <a class="menu-item active" href="#">Search</a>
                     <a class="menu-item" href="/profile.php">Profile</a>
+                    <a class="menu-item" href="/helpers/auth.php?action=logout">Logout</a>
                 </nav>
             </aside>
 
@@ -114,7 +116,11 @@ if ($hasFilters) {
                                     <select class="form-select" name="goal">
                                         <option value="0">Goal: Any</option>
                                         <?php foreach ($goals as $goal): ?>
-                                            <option value="<?= $goal['goal_id'] ?>" <?= $selectedGoal === (int) $goal['goal_id'] ? 'selected' : '' ?>>
+                                            <option value="<?= $goal[
+                                              'goal_id'
+                                            ] ?>" <?= $selectedGoal === (int) $goal['goal_id']
+  ? 'selected'
+  : '' ?>>
                                                 <?= htmlspecialchars($goal['goal_name']) ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -160,23 +166,35 @@ if ($hasFilters) {
                         <?php else: ?>
                             <div class="w-100 d-flex flex-column gap-2">
                                 <?php foreach ($users as $user): ?>
-                                    <a href="/profile/<?= $user['user_id'] ?>" class="text-decoration-none">
+                                    <a href="/profile.php/<?= $user[
+                                      'user_id'
+                                    ] ?>" class="text-decoration-none">
                                         <div class="border rounded p-3 bg-white">
                                             <strong>
                                                 <?php
-                                                $name = trim(($user['given_name'] ?? '') . ' ' . ($user['family_name'] ?? ''));
-                                                echo $name !== '' ? htmlspecialchars($name) : 'User #' . $user['user_id'];
+                                                $name = trim(
+                                                  ($user['given_name'] ?? '') .
+                                                    ' ' .
+                                                    ($user['family_name'] ?? ''),
+                                                );
+                                                echo $name !== ''
+                                                  ? htmlspecialchars($name)
+                                                  : 'User #' . $user['user_id'];
                                                 ?>
                                             </strong>
                                             <?php if (!empty($user['age'])): ?>
-                                                <span class="badge bg-secondary ms-2"><?= $user['age'] ?> yrs</span>
+                                                <span class="badge bg-secondary ms-2"><?= $user[
+                                                  'age'
+                                                ] ?> yrs</span>
                                             <?php endif; ?>
                                             <div class="text-muted mt-1">
                                                 <?php if (!empty($user['location'])): ?>
                                                     📍 <?= htmlspecialchars($user['location']) ?>
                                                 <?php endif; ?>
                                                 <?php if (!empty($user['description'])): ?>
-                                                    <p class="mb-0 mt-1 small"><?= htmlspecialchars(substr($user['description'], 0, 100)) ?>...</p>
+                                                    <p class="mb-0 mt-1 small"><?= htmlspecialchars(
+                                                      substr($user['description'], 0, 100),
+                                                    ) ?>...</p>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -188,9 +206,17 @@ if ($hasFilters) {
                     <div class="split-panel p-4 d-flex flex-column align-items-start justify-content-start">
                         <h5 class="mb-3">Search Snapshot</h5>
                         <div class="w-100 d-flex flex-column gap-2">
-                            <div class="border rounded p-2 bg-white">Partners found: <strong><?= count($users) ?></strong></div>
+                            <div class="border rounded p-2 bg-white">Partners found: <strong><?= count(
+                              $users,
+                            ) ?></strong></div>
                             <div class="border rounded p-2 bg-white">
-                                Goal: <strong><?= $selectedGoal > 0 ? htmlspecialchars($goals[array_search($selectedGoal, array_column($goals, 'goal_id'))]['goal_name'] ?? 'Unknown') : 'Any' ?></strong>
+                                Goal: <strong><?= $selectedGoal > 0
+                                  ? htmlspecialchars(
+                                    $goals[
+                                      array_search($selectedGoal, array_column($goals, 'goal_id'))
+                                    ]['goal_name'] ?? 'Unknown',
+                                  )
+                                  : 'Any' ?></strong>
                             </div>
                             <?php if ($minAge !== null || $maxAge !== null): ?>
                             <div class="border rounded p-2 bg-white">

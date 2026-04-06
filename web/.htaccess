@@ -9,13 +9,9 @@ ErrorDocument 404 /404.html
   RewriteRule "(^|/)\." - [F,L]
   RewriteRule "(^|/)(node_modules|\.git|\.vscode)(/|$)" - [F,L]
   RewriteRule "(^|/)(package\.json|package-lock\.json|\.npmrc|\.prettierrc|\.prettierignore)$" - [F,L]
+  RewriteRule "(^|/)(init\.php)$" - [F,L]
 
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^profile/?$ profile.php [L,QSA,NC]
-  RewriteRule ^profile/([^/]+)/?$ profile.php?userId=$1 [L,QSA,NC]
-
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^user/([^/]+)/?$ profile.php?userId=$1 [L,QSA,NC]
 </IfModule>
