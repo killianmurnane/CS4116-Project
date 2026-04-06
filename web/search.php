@@ -73,6 +73,7 @@ if ($hasFilters) {
   $users = $stmt->fetchAll();
 }
 ?>
+<!DOCTYPE html>
 <html>
     <head>
         <!-- CSS -->

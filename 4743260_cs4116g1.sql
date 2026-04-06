@@ -144,13 +144,6 @@ CREATE TABLE `users` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`user_id`, `email`, `password`, `type`, `created_at`) VALUES
-(1, 'test@gmail.com', '$2y$12$N19Rvzenf57C7.bYabvqX.P0RK.HMNDqq.Hephyukw4/w69priv22', 'standard', '2026-04-06 19:54:56');
-
 -- --------------------------------------------------------
 
 --
