@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <?php
 require __DIR__ . '/helpers/init.php';
 require __DIR__ . '/helpers/auth.php';

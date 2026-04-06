@@ -4,6 +4,8 @@ class ProfileRepository
 {
   public function __construct(private PDO $pdo) {}
 
+  public const ALLOWED_GENDERS = ['male', 'female', 'other'];
+
   public function findById(int $id): ?array
   {
     $stmt = $this->pdo->prepare('SELECT * FROM profiles WHERE user_id = :id LIMIT 1');
@@ -13,11 +15,23 @@ class ProfileRepository
     return $profile ?: null;
   }
 
-  public function createProfile(int $userId, DateTime $dob)
+  public function createProfile(
+    int $userId,
+    string $givenName,
+    string $familyName,
+    string $gender,
+    DateTime $dob,
+  )
   {
-    $stmt = $this->pdo->prepare('INSERT INTO profiles (user_id, dob) VALUES (:userId, :dob)');
+    $stmt = $this->pdo->prepare(
+      'INSERT INTO profiles (user_id, given_name, family_name, gender, dob)
+       VALUES (:userId, :givenName, :familyName, :gender, :dob)',
+    );
     $stmt->execute([
       'userId' => $userId,
+      'givenName' => $givenName,
+      'familyName' => $familyName,
+      'gender' => $gender,
       'dob' => $dob->format('Y-m-d'),
     ]);
 

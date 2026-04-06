@@ -45,13 +45,14 @@ $preferredSessions = trim((string) ($profile['preferred_sessions'] ?? ''));
 $gender = trim((string) ($profile['gender'] ?? ''));
 $dob = trim((string) ($profile['dob'] ?? ''));
 
-$subtitle = htmlspecialchars($displayName);
+$details = [];
 if ($location !== '') {
-  $subtitle .= ' • ' . htmlspecialchars($location);
+  $details[] = htmlspecialchars($location);
 }
 if ($gender !== '') {
-  $subtitle .= ' • ' . htmlspecialchars(ucfirst($gender));
+  $details[] = htmlspecialchars(ucfirst($gender));
 }
+$details = implode(' • ', $details);
 ?>
 <!DOCTYPE html>
 <html>
@@ -80,10 +81,8 @@ if ($gender !== '') {
                     <div class="w-100 d-flex align-items-center gap-3">
                         <div class="rounded-circle bg-secondary" style="width: 72px; height: 72px;"></div>
                         <div>
-                            <h3 class="mb-1"><?= htmlspecialchars(
-                              $profileLabel,
-                            ) ?> #<?= htmlspecialchars((string) $userId) ?></h3>
-                            <p class="text-muted mb-0"><?= $subtitle ?></p>
+                          <h3 class="mb-1"><?= htmlspecialchars($displayName) ?></h3>
+                          <p class="text-muted mb-0"><?= $details ?></p>
                         </div>
                     </div>
                 </section>

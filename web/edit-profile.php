@@ -36,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($givenName === '') {
     $error = 'Given name is required.';
+  } elseif ($genderRaw !== '' && !in_array($genderRaw, ProfileRepository::ALLOWED_GENDERS, true)) {
+    $error = 'Please select a valid gender.';
   } else {
     $dob = null;
     if ($dobInput !== '') {
@@ -126,9 +128,12 @@ $preferredSessions = (string) ($profile['preferred_sessions'] ?? '');
 
                         <div>
                             <label class="form-label" for="gender">Gender</label>
-                            <input class="form-control" id="gender" name="gender" type="text" value="<?= htmlspecialchars(
-                              $gender,
-                            ) ?>">
+                          <select class="form-control" id="gender" name="gender">
+                            <option value="">Select gender</option>
+                            <option value="male" <?= $gender === 'male' ? 'selected' : '' ?>>Male</option>
+                            <option value="female" <?= $gender === 'female' ? 'selected' : '' ?>>Female</option>
+                            <option value="other" <?= $gender === 'other' ? 'selected' : '' ?>>Other</option>
+                          </select>
                         </div>
 
                         <div>

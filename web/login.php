@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <?php
 require __DIR__ . '/helpers/init.php';
 
@@ -83,6 +82,28 @@ $success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
 
                     <div class="login-field-grid">
                         <div class="login-field">
+                            <label class="form-label" for="given_name">First Name</label>
+                            <input class="form-control login-input" id="given_name" name="given_name" type="text" required>
+                        </div>
+
+                        <div class="login-field">
+                            <label class="form-label" for="family_name">Last Name</label>
+                            <input class="form-control login-input" id="family_name" name="family_name" type="text" required>
+                        </div>
+                    </div>
+
+                    <div class="login-field">
+                        <label class="form-label" for="gender">Gender</label>
+                        <select class="form-control login-input" id="gender" name="gender" required>
+                            <option value="" selected disabled>Select gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="login-field-grid">
+                        <div class="login-field">
                             <label class="form-label" for="register_password">Password</label>
                             <input class="form-control login-input" id="register_password" name="register_password" type="password" minlength="8" required>
                         </div>
@@ -95,7 +116,7 @@ $success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
 
                     <div class="login-field">
                         <label class="form-label" for="dob">Date of Birth</label>
-                        <input class="form-control login-input" id="dob" name="dob" type="date">
+                        <input class="form-control login-input" id="dob" name="dob" type="date" required>
                     </div>
 
                     <button class="btn btn-dark login-submit" type="submit">Create Account</button>

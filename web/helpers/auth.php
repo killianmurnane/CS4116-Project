@@ -6,6 +6,8 @@ require_once __DIR__ . '/init.php';
 require_once __DIR__ . '/../database/repository/ProfileRepository.php';
 require_once __DIR__ . '/../database/repository/UserRepository.php';
 
+$allowedGenders = ProfileRepository::ALLOWED_GENDERS;
+
 function isLoggedIn(): bool
 {
   return isset($_SESSION['user_id']);
@@ -79,15 +81,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($action === 'register') {
     $email = trim((string) ($_POST['register_email'] ?? ''));
+    $givenName = trim((string) ($_POST['given_name'] ?? ''));
+    $familyName = trim((string) ($_POST['family_name'] ?? ''));
+    $gender = trim((string) ($_POST['gender'] ?? ''));
     $password = (string) ($_POST['register_password'] ?? '');
     $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
     $dobInput = (string) ($_POST['dob'] ?? '');
 
-    if ($email === '' || $password === '' || $confirmPassword === '' || $dobInput === '') {
+    if (
+      $email === '' ||
+      $givenName === '' ||
+      $familyName === '' ||
+      $gender === '' ||
+      $password === '' ||
+      $confirmPassword === '' ||
+      $dobInput === ''
+    ) {
       $params['error'] = 'All register fields are required.';
       $params['activeForm'] = 'register';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
       $params['error'] = 'Please enter a valid email address.';
+      $params['activeForm'] = 'register';
+    } elseif (!in_array($gender, $allowedGenders, true)) {
+      $params['error'] = 'Please select a valid gender.';
       $params['activeForm'] = 'register';
     } elseif (strlen($password) < 8) {
       $params['error'] = 'Password must be at least 8 characters long.';
@@ -106,7 +122,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $params['activeForm'] = 'register';
       } else {
         try {
-          $userRepository->createUser($email, $password, Type::STANDARD, $dob);
+          $userRepository->createUser(
+            $email,
+            $password,
+            Type::STANDARD,
+            $givenName,
+            $familyName,
+            $gender,
+            $dob,
+          );
           $params['success'] = '1';
         } catch (Throwable $th) {
           $params['error'] = 'Account creation failed. Please try again.';
