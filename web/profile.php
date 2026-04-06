@@ -26,9 +26,7 @@
                     <div class="w-100 d-flex align-items-center gap-3">
                         <div class="rounded-circle bg-secondary" style="width: 72px; height: 72px;"></div>
                         <div>
-                            <h3 class="mb-1">Your Profile <?php echo $userId
-                              ? '#' . htmlspecialchars($userId)
-                              : ''; ?></h3>
+                            <h3 class="mb-1">Your Profile </h3>
                             <p class="text-muted mb-0">Intermediate lifter • 4 workouts/week • Goal: Build strength</p>
                         </div>
                     </div>
