@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/helpers/init.php';
 require __DIR__ . '/helpers/auth.php';
+require_once __DIR__ . '/database/repository/LikesRepository.php';
 requireLogin();
 
 // Fetch all goals for the dropdown
@@ -71,6 +72,34 @@ if ($hasFilters) {
     ");
   $users = $stmt->fetchAll();
 }
+
+// Fetch likes for user
+$likesRepository = new LikesRepository($pdo);
+$likedUserIds = [];
+try {
+  $likes = $likesRepository->getLikedUsers((int) $_SESSION['user_id']);
+  if ($likes) {
+    $likedUserIds = array_column($likes, 'liked_id');
+  }
+} catch (Exception $e) {
+  // Log error and continue without likes
+  error_log('Failed to fetch likes: ' . $e->getMessage());
+}
+
+// Fetch query errors or success
+
+if (isset($_GET['error'])) {
+  $error = match ($_GET['error']) {
+    'like_exists' => 'You have already liked this user.',
+    'like_failed' => 'Failed to like the user. Please try again.',
+    default => 'An unknown error occurred.',
+  };
+} elseif (isset($_GET['success'])) {
+  $success = 'User liked successfully!';
+} elseif (isset($_GET['match'])) {
+  $success =
+    'It\'s a match! This user has also liked you. You can view your matches in the Messages section.';
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -78,6 +107,7 @@ if ($hasFilters) {
         <!-- CSS -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
         <link rel="stylesheet" href="css/base.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css">
         <!-- Other -->
         <title>GymDate</title>
         <meta charset="UTF-8" />
@@ -97,6 +127,15 @@ if ($hasFilters) {
             </aside>
 
             <main class="content">
+                <?php if (isset($error)): ?>
+                    <div class="alert alert-danger login-banner" role="alert">
+                        <?= htmlspecialchars($error) ?>
+                    </div>
+                <?php elseif (isset($success)): ?>
+                    <div class="alert alert-success login-banner" role="alert">
+                        <?= htmlspecialchars($success) ?>
+                    </div>
+                <?php endif; ?>
                 <section class="top-rectangle p-4">
                     <div class="w-100">
                         <h3 class="mb-2">Find Training Partners</h3>
@@ -159,7 +198,7 @@ if ($hasFilters) {
                 <section class="bottom-split">
                     <div class="split-panel p-4 d-flex flex-column align-items-start justify-content-start">
                         <h5 class="mb-3">
-                            <?= count($users) ?> Partner<?= count($users) !== 1 ? 's' : '' ?> Found
+                            <?= count($users) ?> People Found
                         </h5>
                         <?php if (empty($users)): ?>
                             <p class="text-muted">No users found matching your filters.</p>
@@ -187,14 +226,30 @@ if ($hasFilters) {
                                                   'age'
                                                 ] ?> yrs</span>
                                             <?php endif; ?>
-                                            <div class="text-muted mt-1">
-                                                <?php if (!empty($user['location'])): ?>
-                                                    📍 <?= htmlspecialchars($user['location']) ?>
-                                                <?php endif; ?>
-                                                <?php if (!empty($user['description'])): ?>
-                                                    <p class="mb-0 mt-1 small"><?= htmlspecialchars(
-                                                      substr($user['description'], 0, 100),
-                                                    ) ?>...</p>
+                                            <div class="text-muted mt-1 d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <?php if (!empty($user['location'])): ?>
+                                                        📍 <?= htmlspecialchars(
+                                                          $user['location'],
+                                                        ) ?>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($user['description'])): ?>
+                                                        <p class="mb-0 mt-1 small"><?= htmlspecialchars(
+                                                          substr($user['description'], 0, 100),
+                                                        ) ?>...</p>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <?php if (
+                                                  in_array($user['user_id'], $likedUserIds)
+                                                ): ?>
+                                                    <span class="badge bg-success p-2"><i class="fa-solid fa-check fa-xl"></i></span>
+                                                <?php else: ?>
+                                                    <form method="POST" action="/helpers/like.php">
+                                                        <input type="hidden" name="liked_user_id" value="<?= $user[
+                                                          'user_id'
+                                                        ] ?>" />
+                                                      <button type="submit" class="badge bg-danger p-2 border-0"><i class="fa-solid fa-heart fa-xl"></i></button>
+                                                    </form>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -206,7 +261,7 @@ if ($hasFilters) {
                     <div class="split-panel p-4 d-flex flex-column align-items-start justify-content-start">
                         <h5 class="mb-3">Search Snapshot</h5>
                         <div class="w-100 d-flex flex-column gap-2">
-                            <div class="border rounded p-2 bg-white">Partners found: <strong><?= count(
+                            <div class="border rounded p-2 bg-white">People found: <strong><?= count(
                               $users,
                             ) ?></strong></div>
                             <div class="border rounded p-2 bg-white">

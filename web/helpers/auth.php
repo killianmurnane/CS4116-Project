@@ -77,9 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $params['error'] = 'Invalid email or password';
     }
-  }
-
-  if ($action === 'register') {
+  } elseif ($action === 'register') {
     $email = trim((string) ($_POST['register_email'] ?? ''));
     $givenName = trim((string) ($_POST['given_name'] ?? ''));
     $familyName = trim((string) ($_POST['family_name'] ?? ''));
@@ -117,6 +115,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if ($dob === false) {
         $params['error'] = 'Invalid date of birth.';
         $params['activeForm'] = 'register';
+      } elseif ($dob > new DateTime('-18 years')) {
+        $params['error'] = 'You must be at least 18 years old to register.';
+        $params['activeForm'] = 'register';
       } elseif ($userRepository->findByEmail($email)) {
         $params['error'] = 'An account with this email already exists.';
         $params['activeForm'] = 'register';
@@ -132,15 +133,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $dob,
           );
           $params['success'] = '1';
-        } catch (Throwable $th) {
+        } catch (Throwable $exception) {
           $params['error'] = 'Account creation failed. Please try again.';
           $params['activeForm'] = 'register';
         }
       }
     }
-  }
-
-  if ($action !== 'login' && $action !== 'register') {
+  } else {
     $params['error'] = 'Invalid action.';
   }
 
@@ -148,12 +147,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   header('Location: /login.php' . ($query !== '' ? '?' . $query : ''));
   exit();
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
-}
-// Effective entrypoint for logout action
-if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-  logoutUser();
-  header('Location: /login.php');
-  exit();
+  if (isset($_GET['action']) && $_GET['action'] === 'logout') {
+    logoutUser();
+    header('Location: /login.php');
+    exit();
+  }
 } else {
   http_response_code(400);
   exit('Invalid request method.');

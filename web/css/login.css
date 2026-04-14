@@ -128,6 +128,18 @@ body.login-page {
   color: #495057;
 }
 
+.register-requirements {
+  grid-column: 1 / -1;
+  font-size: 0.8125rem;
+  color: #495057;
+  background-color: #e7f3ff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
 @media (max-width: 900px) {
   body.login-page {
     padding: 1rem;

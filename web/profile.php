@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/helpers/init.php';
 require __DIR__ . '/helpers/auth.php';
+require_once __DIR__ . '/database/repository/LikesRepository.php';
 requireLogin();
 
 $url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -53,6 +54,37 @@ if ($gender !== '') {
   $details[] = htmlspecialchars(ucfirst($gender));
 }
 $details = implode(' • ', $details);
+
+$likedUsers = [];
+if ($ownProfile) {
+  $likesRepository = new LikesRepository($pdo);
+  $likedRows = $likesRepository->getLikedUsers($userId) ?? [];
+
+  foreach ($likedRows as $likedRow) {
+    $likedUserId = (int) ($likedRow['liked_id'] ?? 0);
+    if ($likedUserId <= 0) {
+      continue;
+    }
+
+    $likedUser = $userRepository->findById($likedUserId);
+    if (!$likedUser) {
+      continue;
+    }
+
+    $likedGivenName = trim((string) ($likedUser['given_name'] ?? ''));
+    $likedFamilyName = trim((string) ($likedUser['family_name'] ?? ''));
+    $likedDisplayName = trim($likedGivenName . ' ' . $likedFamilyName);
+
+    if ($likedDisplayName === '') {
+      $likedDisplayName = (string) ($likedUser['email'] ?? 'User #' . $likedUserId);
+    }
+
+    $likedUsers[] = [
+      'user_id' => $likedUserId,
+      'display_name' => $likedDisplayName,
+    ];
+  }
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -110,13 +142,22 @@ $details = implode(' • ', $details);
                         <!-- TODO (user_exercises table): show tracked exercises once a UserExerciseRepository exists. -->
                     </div>
                     <div class="split-panel p-4 d-flex flex-column align-items-start justify-content-start">
-                        <h5 class="mb-3">Activity / Social</h5>
+                      <?php if ($ownProfile): ?>
+                        <h5 class="mb-3">Liked Users</h5>
                         <div class="w-100 d-flex flex-column gap-2 mb-3">
-                            <div class="border rounded p-2 bg-white">Profile loaded from users + profiles repositories.</div>
-                            <div class="border rounded p-2 bg-white">User type: <?= htmlspecialchars(
-                              (string) ($user['type'] ?? 'standard'),
-                            ) ?></div>
+                          <?php if (empty($likedUsers)): ?>
+                            <div class="border rounded p-2 bg-white">You haven't liked anyone yet.</div>
+                          <?php else: ?>
+                            <?php foreach ($likedUsers as $likedUser): ?>
+                              <a href="/profile.php/<?= (int) $likedUser[
+                                'user_id'
+                              ] ?>" class="border rounded p-2 bg-white text-decoration-none text-dark">
+                                <?= htmlspecialchars($likedUser['display_name']) ?>
+                              </a>
+                            <?php endforeach; ?>
+                          <?php endif; ?>
                         </div>
+                      <?php endif; ?>
 
                         <!-- TODO (activity table): render recent activity feed once ActivityRepository exists. -->
                         <!-- TODO (matches table): show active matches once MatchRepository exists. -->

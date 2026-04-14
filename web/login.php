@@ -112,12 +112,14 @@ $success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
                             <label class="form-label" for="confirm_password">Confirm Password</label>
                             <input class="form-control login-input" id="confirm_password" name="confirm_password" type="password" minlength="8" required>
                         </div>
+                        <span class="register-requirements">Password must be at least 8 characters long.</span>
                     </div>
 
                     <div class="login-field">
                         <label class="form-label" for="dob">Date of Birth</label>
                         <input class="form-control login-input" id="dob" name="dob" type="date" required>
                     </div>
+                    <span class="register-requirements">You must be at least 18 years old to register.</span>
 
                     <button class="btn btn-dark login-submit" type="submit">Create Account</button>
                 </form>
