@@ -107,6 +107,9 @@ function renderMessage(array $message, int $currentUserId): string
                     <a class="menu-item active" href="#">Messages</a>
                     <a class="menu-item" href="/search.php">Search</a>
                     <a class="menu-item" href="/profile.php">Profile</a>
+                    <?php if (isAdmin()): ?>
+                      <a class="menu-item" href="/admin.php">Admin</a>
+                    <?php endif; ?>
                     <a class="menu-item" href="/helpers/auth.php?action=logout">Logout</a>
                 </nav>
             </aside>

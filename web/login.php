@@ -1,10 +1,31 @@
 <?php
 require __DIR__ . '/helpers/init.php';
+require_once __DIR__ . '/database/repository/LocationsRepository.php';
 
 $activeForm = $_GET['activeForm'] ?? 'login';
-$error = $_GET['error'] ?? null;
-$unauthorized = $error === 'unauthorized';
 $success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
+$locationsRepository = new LocationsRepository($pdo);
+$locations = $locationsRepository->getAllLocations();
+
+if (isset($_GET['error'])) {
+  if ($_GET['error'] === 'unauthorized') {
+    $unauthorized = true;
+  } else {
+    $error = match ($_GET['error']) {
+      'empty_fields' => 'Please fill in all fields.',
+      'invalid_credentials' => 'Invalid email or password.',
+      'account_banned' => 'This account has been banned.',
+      'invalid_email' => 'Please enter a valid email address.',
+      'invalid_gender' => 'Please select a valid gender.',
+      'password_length' => 'Password must be at least 8 characters long.',
+      'passwords_match' => 'Passwords do not match.',
+      'invalid_dob' => 'Invalid date of birth.',
+      'underage' => 'You must be at least 18 years old to register.',
+      'email_exists' => 'An account with this email already exists.',
+      default => 'An unknown error occurred.',
+    };
+  }
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -17,7 +38,7 @@ $success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     </head>
     <body class="login-page">
-        <?php if ($unauthorized): ?>
+        <?php if (isset($unauthorized) && $unauthorized): ?>
             <div class="alert alert-warning login-banner" role="alert">
                 You must be logged in to access that page.
             </div>
@@ -34,17 +55,17 @@ $success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
                     <button id="show-register" class="login-toggle-button" type="button">Register</button>
                 </div>
 
-                <?php if (!empty($error) && !$unauthorized): ?>
-                    <div class="alert alert-danger" role="alert"><?= htmlspecialchars(
-                      $error,
-                    ) ?></div>
+                                <?php if (isset($error) && $error): ?>
+                                        <div class="alert alert-danger" role="alert"><?= e(
+                                          $error,
+                                        ) ?></div>
                 <?php endif; ?>
 
-                <?php if (!empty($success) && $success == true): ?>
+                <?php if (isset($success) && $success == true): ?>
                     <div class="alert alert-success" role="alert">
                       Account created successfully! Please log in.
                     </div>
-                <?php elseif (!empty($success) && $success == false): ?>
+                <?php elseif (isset($success) && $success == false): ?>
                     <div class="alert alert-danger" role="alert">
                       Account creation failed. Please try again.
                     </div>
@@ -68,12 +89,6 @@ $success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
 
                 <form id="register-form" class="login-form" method="post" action="/helpers/auth.php" style="display: none;">
                     <input type="hidden" name="action" value="register">
-
-                    <?php if (!empty($registerError)): ?>
-                        <div class="alert alert-danger" role="alert"><?= htmlspecialchars(
-                          $registerError,
-                        ) ?></div>
-                    <?php endif; ?>
 
                     <div class="login-field">
                         <label class="form-label" for="register_email">Email</label>
@@ -102,6 +117,26 @@ $success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
                         </select>
                     </div>
 
+                    <div class="login-field">
+                        <label class="form-label" for="dob">Date of Birth</label>
+                        <input class="form-control login-input" id="dob" name="dob" type="date" required>
+                    </div>
+                    <span class="register-requirements">You must be at least 18 years old to register.</span>
+
+                    <div class="login-field">
+                        <label class="form-label" for="location">Location</label>
+                        <select class="form-control login-input" id="location" name="location" required>
+                            <option value="" selected disabled>Select county</option>
+                            <?php foreach ($locations as $location): ?>
+                                                                <option value="<?= e(
+                                                                  $location['id'] ?? '',
+                                                                ) ?>"><?= e(
+  $location['location'] ?? '',
+) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
                     <div class="login-field-grid">
                         <div class="login-field">
                             <label class="form-label" for="register_password">Password</label>
@@ -114,13 +149,6 @@ $success = isset($_GET['success']) ? $_GET['success'] === '1' : null;
                         </div>
                         <span class="register-requirements">Password must be at least 8 characters long.</span>
                     </div>
-
-                    <div class="login-field">
-                        <label class="form-label" for="dob">Date of Birth</label>
-                        <input class="form-control login-input" id="dob" name="dob" type="date" required>
-                    </div>
-                    <span class="register-requirements">You must be at least 18 years old to register.</span>
-
                     <button class="btn btn-dark login-submit" type="submit">Create Account</button>
                 </form>
             </section>

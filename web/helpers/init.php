@@ -19,3 +19,10 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $pdo = require __DIR__ . '/../database/sql.php';
+
+if (!function_exists('e')) {
+  function e(mixed $value): string
+  {
+    return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES, 'UTF-8');
+  }
+}

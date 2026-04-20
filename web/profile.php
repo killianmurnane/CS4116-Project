@@ -1,19 +1,12 @@
 <?php
 require __DIR__ . '/helpers/init.php';
 require __DIR__ . '/helpers/auth.php';
-require_once __DIR__ . '/database/repository/LikesRepository.php';
+require_once __DIR__ . '/database/repository/GoalsRepository.php';
+require_once __DIR__ . '/database/repository/ExercisesRepository.php';
 requireLogin();
 
-$url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$segments = explode('/', trim((string) $url, '/'));
-$lastSegment = end($segments);
-
-if (ctype_digit($lastSegment) && (int) $lastSegment > 0) {
-  // Handles /profile/1, /web/profile.php/1, etc.
-  $userId = (int) $lastSegment;
-  $ownProfile = $userId === (int) $_SESSION['user_id'];
-} elseif (isset($_GET['userId']) && ctype_digit((string) $_GET['userId'])) {
-  $userId = (int) $_GET['userId'];
+if (isset($_POST['id']) && ctype_digit((string) $_POST['id']) && (int) $_POST['id'] > 0) {
+  $userId = (int) $_POST['id'];
   $ownProfile = $userId === (int) $_SESSION['user_id'];
 } else {
   $userId = (int) $_SESSION['user_id'];
@@ -22,9 +15,13 @@ if (ctype_digit($lastSegment) && (int) $lastSegment > 0) {
 
 $userRepository = new UserRepository($pdo);
 $profileRepository = new ProfileRepository($pdo);
+$goalsRepository = new GoalsRepository($pdo);
+$exercisesRepository = new ExercisesRepository($pdo);
 
 $user = $userRepository->findById($userId);
 $profile = $profileRepository->findById($userId);
+$userGoals = $goalsRepository->getUserGoals($userId);
+$userExercises = $exercisesRepository->getUserExercises($userId);
 
 if (!$user) {
   header('Location: /404.html');
@@ -41,7 +38,7 @@ if ($displayName === '') {
 
 $profileLabel = $ownProfile ? 'Your Profile' : 'Profile';
 $bio = trim((string) ($profile['description'] ?? ''));
-$location = trim((string) ($profile['location'] ?? ''));
+$location = trim((string) ($profile['location_name'] ?? ($profile['location'] ?? '')));
 $preferredSessions = trim((string) ($profile['preferred_sessions'] ?? ''));
 $gender = trim((string) ($profile['gender'] ?? ''));
 $dob = trim((string) ($profile['dob'] ?? ''));
@@ -55,36 +52,20 @@ if ($gender !== '') {
 }
 $details = implode(' • ', $details);
 
-$likedUsers = [];
-if ($ownProfile) {
-  $likesRepository = new LikesRepository($pdo);
-  $likedRows = $likesRepository->getLikedUsers($userId) ?? [];
-
-  foreach ($likedRows as $likedRow) {
-    $likedUserId = (int) ($likedRow['liked_id'] ?? 0);
-    if ($likedUserId <= 0) {
-      continue;
-    }
-
-    $likedUser = $userRepository->findById($likedUserId);
-    if (!$likedUser) {
-      continue;
-    }
-
-    $likedGivenName = trim((string) ($likedUser['given_name'] ?? ''));
-    $likedFamilyName = trim((string) ($likedUser['family_name'] ?? ''));
-    $likedDisplayName = trim($likedGivenName . ' ' . $likedFamilyName);
-
-    if ($likedDisplayName === '') {
-      $likedDisplayName = (string) ($likedUser['email'] ?? 'User #' . $likedUserId);
-    }
-
-    $likedUsers[] = [
-      'user_id' => $likedUserId,
-      'display_name' => $likedDisplayName,
-    ];
-  }
-}
+$goalCount = count($userGoals);
+$exerciseCount = count($userExercises);
+$completionChecks = [
+  $givenName !== '',
+  $familyName !== '',
+  $gender !== '',
+  $location !== '',
+  $dob !== '',
+  $bio !== '',
+  $preferredSessions !== '',
+  $goalCount > 0,
+  $exerciseCount > 0,
+];
+$profileCompletion = (int) round((array_sum($completionChecks) / count($completionChecks)) * 100);
 ?>
 <!DOCTYPE html>
 <html>
@@ -103,7 +84,14 @@ if ($ownProfile) {
                     <a class="menu-item" href="/">Home</a>
                     <a class="menu-item" href="/message.php">Messages</a>
                     <a class="menu-item" href="/search.php">Search</a>
-                    <a class="menu-item active" href="#">Profile</a>
+                    <a class="menu-item active" href="<?php if (!$ownProfile) {
+                      echo '/profile.php';
+                    } else {
+                      echo '#';
+                    } ?>">Profile</a>
+                    <?php if (isAdmin()): ?>
+                      <a class="menu-item" href="/admin.php">Admin</a>
+                    <?php endif; ?>
                     <a class="menu-item" href="/helpers/auth.php?action=logout">Logout</a>
                 </nav>
             </aside>
@@ -113,6 +101,9 @@ if ($ownProfile) {
                     <div class="w-100 d-flex align-items-center gap-3">
                         <div class="rounded-circle bg-secondary" style="width: 72px; height: 72px;"></div>
                         <div>
+                          <p class="text-uppercase text-muted mb-1 small"><?= htmlspecialchars(
+                            $profileLabel,
+                          ) ?></p>
                           <h3 class="mb-1"><?= htmlspecialchars($displayName) ?></h3>
                           <p class="text-muted mb-0"><?= $details ?></p>
                         </div>
@@ -127,46 +118,74 @@ if ($ownProfile) {
                           : 'No profile description added yet.' ?></p>
 
                         <h6 class="mb-2">Profile Details</h6>
-                        <ul class="mb-3">
-                            <li>Email: <?= htmlspecialchars((string) $user['email']) ?></li>
-                            <li>Date of Birth: <?= $dob !== ''
+                        <div class="w-100 d-grid gap-2 mb-3">
+                            <div class="border rounded p-2 bg-white"><strong>Email:</strong> <?= htmlspecialchars(
+                              (string) $user['email'],
+                            ) ?></div>
+                            <div class="border rounded p-2 bg-white"><strong>Location:</strong> <?= $location !==
+                            ''
+                              ? htmlspecialchars($location)
+                              : 'Not set' ?></div>
+                            <div class="border rounded p-2 bg-white"><strong>Gender:</strong> <?= $gender !==
+                            ''
+                              ? htmlspecialchars(ucfirst($gender))
+                              : 'Not set' ?></div>
+                            <div class="border rounded p-2 bg-white"><strong>Date of Birth:</strong> <?= $dob !==
+                            ''
                               ? htmlspecialchars($dob)
-                              : 'Not set' ?></li>
-                            <li>Preferred Sessions: <?= $preferredSessions !== ''
+                              : 'Not set' ?></div>
+                            <div class="border rounded p-2 bg-white"><strong>Preferred Sessions:</strong> <?= $preferredSessions !==
+                            ''
                               ? htmlspecialchars($preferredSessions)
-                              : 'Not set' ?></li>
-                        </ul>
+                              : 'Not set' ?></div>
+                        </div>
 
-                        <!-- TODO (goals table): add user's goals from user_goals + goals tables once a GoalRepository exists. -->
-                        <!-- TODO (personal_records table): show latest PRs once a PersonalRecordRepository exists. -->
-                        <!-- TODO (user_exercises table): show tracked exercises once a UserExerciseRepository exists. -->
+                        <h6 class="mb-2">Goals</h6>
+                        <?php if (empty($userGoals)): ?>
+                            <p class="text-muted">No goals selected yet.</p>
+                        <?php else: ?>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <?php foreach ($userGoals as $goal): ?>
+                                    <span class="badge bg-dark p-2"><?= htmlspecialchars(
+                                      (string) $goal['goal_name'],
+                                    ) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <h6 class="mb-2">Exercises</h6>
+                        <?php if (empty($userExercises)): ?>
+                            <p class="text-muted">No exercises selected yet.</p>
+                        <?php else: ?>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <?php foreach ($userExercises as $exercise): ?>
+                                    <span class="badge bg-secondary p-2"><?= htmlspecialchars(
+                                      (string) $exercise['exercise_name'],
+                                    ) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div class="split-panel p-4 d-flex flex-column align-items-start justify-content-start">
-                      <?php if ($ownProfile): ?>
-                        <h5 class="mb-3">Liked Users</h5>
-                        <div class="w-100 d-flex flex-column gap-2 mb-3">
-                          <?php if (empty($likedUsers)): ?>
-                            <div class="border rounded p-2 bg-white">You haven't liked anyone yet.</div>
-                          <?php else: ?>
-                            <?php foreach ($likedUsers as $likedUser): ?>
-                              <a href="/profile.php/<?= (int) $likedUser[
-                                'user_id'
-                              ] ?>" class="border rounded p-2 bg-white text-decoration-none text-dark">
-                                <?= htmlspecialchars($likedUser['display_name']) ?>
-                              </a>
-                            <?php endforeach; ?>
-                          <?php endif; ?>
+                        <h5 class="mb-3">Overview</h5>
+                        <div class="w-100 d-grid gap-2 mb-3">
+                            <div class="border rounded p-2 bg-white d-flex justify-content-between"><span>Goals</span><strong><?= $goalCount ?></strong></div>
+                            <div class="border rounded p-2 bg-white d-flex justify-content-between"><span>Exercises</span><strong><?= $exerciseCount ?></strong></div>
+                            <div class="border rounded p-2 bg-white d-flex justify-content-between"><span>Profile Completion</span><strong><?= $profileCompletion ?>%</strong></div>
                         </div>
-                      <?php endif; ?>
 
-                        <!-- TODO (activity table): render recent activity feed once ActivityRepository exists. -->
-                        <!-- TODO (matches table): show active matches once MatchRepository exists. -->
-                        <!-- TODO (messages table): show recent message summary once MessageRepository exists. -->
-                        <!-- TODO (likes table): show likes/mutual likes once LikeRepository exists. -->
+                        <h6 class="mb-2">Actions</h6>
+                        <div class="w-100 d-flex flex-column gap-2">
+                            <?php if ($ownProfile): ?>
+                                <a class="btn btn-dark" href="/edit-profile.php">Edit Profile</a>
+                                <a class="btn btn-outline-dark" href="/search.php">Find Training Partners</a>
+                                <a class="btn btn-outline-dark" href="/message.php">Open Messages</a>
+                            <?php else: ?>
+                                <a class="btn btn-outline-dark" href="/search.php">Back to Search</a>
+                                <a class="btn btn-dark" href="/profile.php">View My Profile</a>
+                            <?php endif; ?>
+                        </div>
 
-                        <?php if ($ownProfile): ?>
-                          <a class="btn btn-dark mt-auto" href="/edit-profile.php">Edit Profile</a>
-                        <?php endif; ?>
                     </div>
                 </section>
             </main>

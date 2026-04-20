@@ -8,7 +8,13 @@ class ProfileRepository
 
   public function findById(int $id): ?array
   {
-    $stmt = $this->pdo->prepare('SELECT * FROM profiles WHERE user_id = :id LIMIT 1');
+    $stmt = $this->pdo->prepare(
+      'SELECT p.*, l.location AS location_name
+       FROM profiles p
+       LEFT JOIN locations l ON l.id = p.location
+       WHERE p.user_id = :id
+       LIMIT 1',
+    );
     $stmt->execute(['id' => $id]);
 
     $profile = $stmt->fetch();
@@ -21,11 +27,11 @@ class ProfileRepository
     string $familyName,
     string $gender,
     DateTime $dob,
-  )
-  {
+    string $location,
+  ): ?array {
     $stmt = $this->pdo->prepare(
-      'INSERT INTO profiles (user_id, given_name, family_name, gender, dob)
-       VALUES (:userId, :givenName, :familyName, :gender, :dob)',
+      'INSERT INTO profiles (user_id, given_name, family_name, gender, dob, location)
+       VALUES (:userId, :givenName, :familyName, :gender, :dob, :location)',
     );
     $stmt->execute([
       'userId' => $userId,
@@ -33,6 +39,7 @@ class ProfileRepository
       'familyName' => $familyName,
       'gender' => $gender,
       'dob' => $dob->format('Y-m-d'),
+      'location' => $location,
     ]);
 
     return $this->findById($userId);

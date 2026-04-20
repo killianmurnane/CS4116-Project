@@ -13,10 +13,25 @@ function isLoggedIn(): bool
   return isset($_SESSION['user_id']);
 }
 
+function isAdmin(): bool
+{
+  return isset($_SESSION['user_type']) && $_SESSION['user_type'] === Type::ADMIN->value;
+}
+
 function requireLogin(): void
 {
   if (!isLoggedIn()) {
     header('Location: /login.php?error=unauthorized');
+    exit();
+  }
+}
+
+function requireAdmin(): void
+{
+  requireLogin();
+
+  if (!isAdmin()) {
+    header('Location: /index.php');
     exit();
   }
 }
@@ -65,17 +80,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = (string) ($_POST['password'] ?? '');
 
     if ($email === '' || $password === '') {
-      $params['error'] = 'Email and password are required.';
+      $params['error'] = 'empty_fields';
     } else {
       $user = $userRepository->findByEmail($email);
 
       if ($user && password_verify($password, (string) $user['password'])) {
-        loginUser($user);
-        header('Location: /index.php');
-        exit();
+        if (($user['type'] ?? null) === Type::BANNED->value) {
+          $params['error'] = 'account_banned';
+        } else {
+          loginUser($user);
+          if (isAdmin()) {
+            header('Location: /admin.php');
+          } else {
+            header('Location: /index.php');
+          }
+          exit();
+        }
       }
 
-      $params['error'] = 'Invalid email or password';
+      if (!isset($params['error'])) {
+        $params['error'] = 'invalid_credentials';
+      }
     }
   } elseif ($action === 'register') {
     $email = trim((string) ($_POST['register_email'] ?? ''));
@@ -85,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = (string) ($_POST['register_password'] ?? '');
     $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
     $dobInput = (string) ($_POST['dob'] ?? '');
+    $location = trim((string) ($_POST['location'] ?? ''));
 
     if (
       $email === '' ||
@@ -95,31 +121,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $confirmPassword === '' ||
       $dobInput === ''
     ) {
-      $params['error'] = 'All register fields are required.';
+      $params['error'] = 'empty_fields';
       $params['activeForm'] = 'register';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-      $params['error'] = 'Please enter a valid email address.';
+      $params['error'] = 'invalid_email';
       $params['activeForm'] = 'register';
     } elseif (!in_array($gender, $allowedGenders, true)) {
-      $params['error'] = 'Please select a valid gender.';
+      $params['error'] = 'invalid_gender';
       $params['activeForm'] = 'register';
     } elseif (strlen($password) < 8) {
-      $params['error'] = 'Password must be at least 8 characters long.';
+      $params['error'] = 'password_length';
       $params['activeForm'] = 'register';
     } elseif ($password !== $confirmPassword) {
-      $params['error'] = 'Passwords do not match.';
+      $params['error'] = 'passwords_match';
       $params['activeForm'] = 'register';
     } else {
       $dob = DateTime::createFromFormat('Y-m-d', $dobInput);
 
       if ($dob === false) {
-        $params['error'] = 'Invalid date of birth.';
+        $params['error'] = 'invalid_dob';
         $params['activeForm'] = 'register';
       } elseif ($dob > new DateTime('-18 years')) {
-        $params['error'] = 'You must be at least 18 years old to register.';
+        $params['error'] = 'underage';
         $params['activeForm'] = 'register';
       } elseif ($userRepository->findByEmail($email)) {
-        $params['error'] = 'An account with this email already exists.';
+        $params['error'] = 'email_exists';
         $params['activeForm'] = 'register';
       } else {
         try {
@@ -131,16 +157,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $familyName,
             $gender,
             $dob,
+            $location,
           );
           $params['success'] = '1';
         } catch (Throwable $exception) {
-          $params['error'] = 'Account creation failed. Please try again.';
+          $params['error'] = 'account_creation_failed';
           $params['activeForm'] = 'register';
         }
       }
     }
   } else {
-    $params['error'] = 'Invalid action.';
+    $params['error'] = 'invalid_action';
   }
 
   $query = http_build_query($params);

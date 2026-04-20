@@ -59,6 +59,17 @@ CREATE TABLE `goals` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `locations`
+--
+
+CREATE TABLE `locations` (
+  `id` int NOT NULL,
+  `location` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `likes`
 --
 
@@ -122,7 +133,7 @@ CREATE TABLE `profiles` (
   `given_name` varchar(26) DEFAULT NULL,
   `family_name` varchar(26) DEFAULT NULL,
   `gender` enum('male','female','other') DEFAULT NULL,
-  `location` varchar(255) DEFAULT NULL,
+  `location` int DEFAULT NULL,
   `dob` date DEFAULT NULL,
   `description` text,
   `preferred_sessions` text,
@@ -191,6 +202,12 @@ ALTER TABLE `goals`
   ADD PRIMARY KEY (`goal_id`);
 
 --
+-- Indexes for table `locations`
+--
+ALTER TABLE `locations`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `likes`
 --
 ALTER TABLE `likes`
@@ -211,7 +228,7 @@ ALTER TABLE `matches`
 ALTER TABLE `messages`
   ADD PRIMARY KEY (`message_id`),
   ADD KEY `match_id` (`match_id`),
-  ADD KEY `sender_id` (`sender_id`),
+  ADD KEY `sender_id` (`sender_id`);
 
 --
 -- Indexes for table `personal_records`
@@ -226,7 +243,8 @@ ALTER TABLE `personal_records`
 --
 ALTER TABLE `profiles`
   ADD PRIMARY KEY (`profile_id`),
-  ADD UNIQUE KEY `user_id` (`user_id`);
+  ADD UNIQUE KEY `user_id` (`user_id`),
+  ADD KEY `location` (`location`);
 
 --
 -- Indexes for table `users`
@@ -272,6 +290,12 @@ ALTER TABLE `goals`
   MODIFY `goal_id` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `locations`
+--
+ALTER TABLE `locations`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `matches`
 --
 ALTER TABLE `matches`
@@ -302,6 +326,70 @@ ALTER TABLE `users`
   MODIFY `user_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- Seed data for lookup tables
+--
+
+INSERT INTO `locations` (`id`, `location`) VALUES
+(1, 'Antrim'),
+(2, 'Armagh'),
+(3, 'Carlow'),
+(4, 'Cavan'),
+(5, 'Clare'),
+(6, 'Cork'),
+(7, 'Derry'),
+(8, 'Donegal'),
+(9, 'Down'),
+(10, 'Dublin'),
+(11, 'Fermanagh'),
+(12, 'Galway'),
+(13, 'Kerry'),
+(14, 'Kildare'),
+(15, 'Kilkenny'),
+(16, 'Laois'),
+(17, 'Leitrim'),
+(18, 'Limerick'),
+(19, 'Longford'),
+(20, 'Louth'),
+(21, 'Mayo'),
+(22, 'Meath'),
+(23, 'Monaghan'),
+(24, 'Offaly'),
+(25, 'Roscommon'),
+(26, 'Sligo'),
+(27, 'Tipperary'),
+(28, 'Tyrone'),
+(29, 'Waterford'),
+(30, 'Westmeath'),
+(31, 'Wexford'),
+(32, 'Wicklow')
+ON DUPLICATE KEY UPDATE
+  `location` = VALUES(`location`);
+
+INSERT INTO `goals` (`goal_id`, `goal_name`) VALUES
+(1, 'Weight Loss'),
+(2, 'Muscle Gain'),
+(3, 'Strength'),
+(4, 'Endurance'),
+(5, 'General Fitness'),
+(6, 'Sports Performance')
+ON DUPLICATE KEY UPDATE
+  `goal_name` = VALUES(`goal_name`);
+
+INSERT INTO `exercises` (`exercise_id`, `exercise_name`) VALUES
+(1, 'Bench Press'),
+(2, 'Squat'),
+(3, 'Deadlift'),
+(4, 'Overhead Press'),
+(5, 'Running'),
+(6, 'Cycling'),
+(7, 'Rowing'),
+(8, 'Yoga'),
+(9, 'Swimming'),
+(10, 'HIIT')
+ON DUPLICATE KEY UPDATE
+  `exercise_name` = VALUES(`exercise_name`);
+
+--
 -- Constraints for dumped tables
 --
 
@@ -330,7 +418,7 @@ ALTER TABLE `matches`
 --
 ALTER TABLE `messages`
   ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`match_id`) REFERENCES `matches` (`match_id`),
-  ADD CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`user_id`);
 
 --
 -- Constraints for table `personal_records`
@@ -343,7 +431,8 @@ ALTER TABLE `personal_records`
 -- Constraints for table `profiles`
 --
 ALTER TABLE `profiles`
-  ADD CONSTRAINT `profiles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
+  ADD CONSTRAINT `profiles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `profiles_ibfk_2` FOREIGN KEY (`location`) REFERENCES `locations` (`id`);
 
 --
 -- Constraints for table `user_exercises`
