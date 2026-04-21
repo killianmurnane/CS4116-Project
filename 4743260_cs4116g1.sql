@@ -153,6 +153,7 @@ CREATE TABLE `reports` (
   `reason` varchar(100) NOT NULL,
   `message` text NOT NULL,
   `ai_overview` text,
+  `reviewed` bool NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
