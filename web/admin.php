@@ -4,12 +4,14 @@ require __DIR__ . '/helpers/auth.php';
 require_once __DIR__ . '/database/repository/UserRepository.php';
 require_once __DIR__ . '/database/repository/ProfileRepository.php';
 require_once __DIR__ . '/database/repository/LocationsRepository.php';
+require_once __DIR__ . '/database/repository/ReportsRepository.php';
 
 requireAdmin();
 
 $userRepository = new UserRepository($pdo);
 $profileRepository = new ProfileRepository($pdo);
 $locationsRepository = new LocationsRepository($pdo);
+$reportsRepository = new ReportsRepository($pdo);
 $locations = $locationsRepository->getAllLocations();
 $locationIds = array_map(static fn($row) => (int) $row['id'], $locations);
 
@@ -108,11 +110,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute(['message_id' => $messageId]);
         $flash = 'Message removed.';
       }
+    } elseif ($action === 'review_report') {
+      $reportId = (int) ($_POST['report_id'] ?? 0);
+      if ($reportId > 0) {
+        $reportsRepository->reviewReport($reportId);
+        $flash = 'Report marked as reviewed.';
+      }
     }
   } catch (Throwable $exception) {
     $error = 'Action failed. Please try again.';
   }
 }
+
+$unreviewedReports = $reportsRepository->getUnreviewedReports(20) ?? [];
+
+$resolveProfileDisplayName = static function (int $userId) use (
+  $profileRepository,
+  $userRepository,
+): string {
+  $profile = $profileRepository->findById($userId);
+  if ($profile !== null) {
+    $name = trim((string) (($profile['given_name'] ?? '') . ' ' . ($profile['family_name'] ?? '')));
+    if ($name !== '') {
+      return $name;
+    }
+  }
+
+  $user = $userRepository->findById($userId);
+  if ($user !== null && !empty($user['email'])) {
+    return (string) $user['email'];
+  }
+
+  return 'User #' . $userId;
+};
+
+$profileNameCache = [];
+$getProfileName = static function (int $userId) use (
+  &$profileNameCache,
+  $resolveProfileDisplayName,
+): string {
+  if (!array_key_exists($userId, $profileNameCache)) {
+    $profileNameCache[$userId] = $resolveProfileDisplayName($userId);
+  }
+
+  return $profileNameCache[$userId];
+};
 
 $usersSql = 'SELECT u.user_id, u.email, u.type, u.created_at, p.given_name, p.family_name, p.gender, p.location, p.dob, p.description, p.preferred_sessions, l.location AS location_name
    FROM users u
@@ -180,6 +222,7 @@ $buildAdminUrl = function (array $params = []) use ($searchTerm, $selectedUserId
     <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
         <link rel="stylesheet" href="/css/base.css" />
+        <link rel="stylesheet" href="/css/admin.css" />
         <title>Admin Dashboard - GymDate</title>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -193,6 +236,7 @@ $buildAdminUrl = function (array $params = []) use ($searchTerm, $selectedUserId
                     <a class="menu-item" href="/message.php">Messages</a>
                     <a class="menu-item" href="/search.php">Search</a>
                     <a class="menu-item" href="/profile.php">Profile</a>
+                    <a class="menu-item" href="/support.php">Support</a>
                     <a class="menu-item active" href="#">Admin</a>
                     <a class="menu-item" href="/helpers/auth.php?action=logout">Logout</a>
                 </nav>
@@ -230,6 +274,76 @@ $buildAdminUrl = function (array $params = []) use ($searchTerm, $selectedUserId
                         </form>
                     </div>
                 </section>
+
+                  <section class="split-panel p-4 d-flex flex-column align-items-start justify-content-start reports-card" style="flex: 0 0 auto;">
+                    <div class="d-flex justify-content-between align-items-center w-100 mb-3">
+                      <h5 class="mb-0">Unreviewed Reports</h5>
+                      <span class="text-muted small"><?= count($unreviewedReports) ?> pending</span>
+                    </div>
+
+                    <?php if (empty($unreviewedReports)): ?>
+                      <p class="text-muted mb-0">No unreviewed reports right now.</p>
+                    <?php else: ?>
+                      <div class="reports-list">
+                        <?php foreach ($unreviewedReports as $report): ?>
+                          <?php
+                          $reporterId = (int) ($report['reporter_id'] ?? 0);
+                          $reportedId = (int) ($report['reported_id'] ?? 0);
+                          $reportId = (int) ($report['report_id'] ?? 0);
+                          ?>
+                          <article class="report-item">
+                            <div class="report-head">
+                              <div class="report-users">
+                                <span class="text-muted small">Reporter</span>
+                                <a class="reports-user-link" href="/admin.php?user_id=<?= $reporterId ?>">
+                                  <?= htmlspecialchars($getProfileName($reporterId)) ?>
+                                </a>
+                                <span class="text-muted">→</span>
+                                <span class="text-muted small">Reported</span>
+                                <a class="reports-user-link" href="/admin.php?user_id=<?= $reportedId ?>">
+                                  <?= htmlspecialchars($getProfileName($reportedId)) ?>
+                                </a>
+                              </div>
+                              <div class="text-muted small"><?= htmlspecialchars(
+                                (string) ($report['created_at'] ?? ''),
+                              ) ?></div>
+                            </div>
+
+                            <div class="mb-2">
+                              <span class="badge bg-secondary">Reason: <?= htmlspecialchars(
+                                (string) ($report['reason'] ?? ''),
+                              ) ?></span>
+                            </div>
+
+                            <div class="report-content">
+                              <div>
+                                <p class="small text-muted mb-1">Report Message</p>
+                                <div class="reports-scrollbox"><?= htmlspecialchars(
+                                  (string) ($report['message'] ?? ''),
+                                ) ?></div>
+                              </div>
+                              <div>
+                                <p class="small text-muted mb-1">AI Overview</p>
+                                <div class="reports-scrollbox"><?= htmlspecialchars(
+                                  (string) ($report['ai_overview'] ?? ''),
+                                ) ?></div>
+                              </div>
+                            </div>
+
+                            <form method="POST" class="d-flex justify-content-end m-0">
+                              <input type="hidden" name="action" value="review_report" />
+                              <input type="hidden" name="report_id" value="<?= $reportId ?>" />
+                              <input type="hidden" name="selected_user_id" value="<?= (int) $selectedUserId ?>" />
+                              <input type="hidden" name="search_q" value="<?= htmlspecialchars(
+                                $searchTerm,
+                              ) ?>" />
+                              <button class="btn btn-sm btn-outline-success" type="submit">Mark Reviewed</button>
+                            </form>
+                          </article>
+                        <?php endforeach; ?>
+                      </div>
+                    <?php endif; ?>
+                  </section>
 
                 <section class="bottom-split">
                     <div class="split-panel p-4 d-flex flex-column align-items-start justify-content-start">

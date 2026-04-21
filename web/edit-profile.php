@@ -156,6 +156,7 @@ $preferredSessions = (string) ($profile['preferred_sessions'] ?? '');
                     <a class="menu-item" href="/message.php">Messages</a>
                     <a class="menu-item" href="/search.php">Search</a>
                     <a class="menu-item active" href="/profile.php">Profile</a>
+                    <a class="menu-item" href="/support.php">Support</a>
                     <?php if (isAdmin()): ?>
                       <a class="menu-item" href="/admin.php">Admin</a>
                     <?php endif; ?>

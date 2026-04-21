@@ -93,10 +93,31 @@ function renderMessage(array $message, int $currentUserId): string
         <!-- CSS -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
         <link rel="stylesheet" href="css/base.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css">
         <!-- Other -->
         <title>GymDate</title>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+          .report-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+            padding: 1rem;
+          }
+
+          .report-modal-card {
+            width: 100%;
+            max-width: 520px;
+            background: #fff;
+            border-radius: 0.75rem;
+            border: 1px solid #ced4da;
+          }
+        </style>
     </head>
     <body>
         <div class="container">
@@ -107,6 +128,7 @@ function renderMessage(array $message, int $currentUserId): string
                     <a class="menu-item active" href="#">Messages</a>
                     <a class="menu-item" href="/search.php">Search</a>
                     <a class="menu-item" href="/profile.php">Profile</a>
+                    <a class="menu-item" href="/support.php">Support</a>
                     <?php if (isAdmin()): ?>
                       <a class="menu-item" href="/admin.php">Admin</a>
                     <?php endif; ?>
@@ -135,21 +157,49 @@ function renderMessage(array $message, int $currentUserId): string
                                 <p class="text-muted">No matches yet. Like some profiles to find gym partners!</p>
                             <?php else: ?>
                                 <?php foreach ($matches as $match): ?>
-                                    <form method="GET" action="/message.php" class="w-100">
-                                        <button
-                                            type="submit"
-                                            name="matchId"
-                                            value="<?= (int) $match['match_id'] ?>"
-                                            class="list-group-item list-group-item-action text-start <?= $selectedMatchId ===
-                                            (int) $match['match_id']
-                                              ? 'active'
-                                              : '' ?>"
-                                        >
-                                            <?= htmlspecialchars(
-                                              (string) ($match['display_name'] ?? 'Unknown'),
-                                            ) ?>
-                                        </button>
+                                  <?php $otherUserId =
+                                    (int) ($match['user1_id'] ?? 0) === (int) $_SESSION['user_id']
+                                      ? (int) ($match['user2_id'] ?? 0)
+                                      : (int) ($match['user1_id'] ?? 0); ?>
+                                  <div class="list-group-item d-flex align-items-center gap-2 <?= $selectedMatchId ===
+                                  (int) $match['match_id']
+                                    ? 'active'
+                                    : '' ?>">
+                                    <form method="GET" action="/message.php" class="flex-grow-1 m-0">
+                                      <button
+                                        type="submit"
+                                        name="matchId"
+                                        value="<?= (int) $match['match_id'] ?>"
+                                        class="btn btn-link text-start text-decoration-none p-0 w-100 <?= $selectedMatchId ===
+                                        (int) $match['match_id']
+                                          ? 'text-white'
+                                          : 'text-dark' ?>"
+                                      >
+                                        <?= htmlspecialchars(
+                                          (string) ($match['display_name'] ?? 'Unknown'),
+                                        ) ?>
+                                      </button>
                                     </form>
+                                    <div class="m-0">
+                                      <button
+                                        type="button"
+                                        class="btn btn-sm <?= $selectedMatchId ===
+                                        (int) $match['match_id']
+                                          ? 'btn-light text-danger'
+                                          : 'btn-outline-danger' ?>"
+                                        title="Report user"
+                                        data-report-button="true"
+                                        data-reported-user-id="<?= $otherUserId ?>"
+                                        data-reported-user-name="<?= htmlspecialchars(
+                                          (string) ($match['display_name'] ?? 'Unknown'),
+                                          ENT_QUOTES,
+                                        ) ?>"
+                                        data-match-id="<?= (int) $match['match_id'] ?>"
+                                      >
+                                        <i class="fas fa-flag"></i>
+                                      </button>
+                                    </div>
+                                  </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </div>
@@ -192,5 +242,53 @@ function renderMessage(array $message, int $currentUserId): string
                 </section>
             </main>
         </div>
+
+            <div id="report-modal" class="report-modal-overlay d-none" aria-hidden="true">
+              <div class="report-modal-card p-4" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                  <div>
+                    <h5 id="report-modal-title" class="mb-1">Report user</h5>
+                    <p class="text-muted mb-0">You are reporting: <strong id="report-modal-user-name">Unknown</strong></p>
+                  </div>
+                  <button id="report-modal-close" type="button" class="btn-close" aria-label="Close"></button>
+                </div>
+
+                <form method="POST" action="/helpers/report.php" id="report-modal-form" class="d-grid gap-3">
+                  <input type="hidden" id="report-modal-user-id" name="reported_user_id" value="" />
+                  <input type="hidden" id="report-modal-match-id" name="match_id" value="" />
+
+                  <div>
+                    <label class="form-label" for="report-modal-reason">Reason</label>
+                    <select class="form-select" id="report-modal-reason" name="reason" required>
+                      <option value="" selected disabled>Select a reason</option>
+                      <option value="harassment">Harassment</option>
+                      <option value="spam">Spam</option>
+                      <option value="inappropriate_content">Inappropriate content</option>
+                      <option value="fake_profile">Fake profile</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="form-label" for="report-modal-message">Message</label>
+                    <textarea
+                      class="form-control"
+                      id="report-modal-message"
+                      name="message"
+                      rows="4"
+                      placeholder="Please provide details for moderators..."
+                      required
+                    ></textarea>
+                  </div>
+
+                  <div class="d-flex justify-content-end gap-2">
+                    <button id="report-modal-cancel" type="button" class="btn btn-outline-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Submit Report</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <script src="/scripts/modal.js"></script>
     </body>
 </html>

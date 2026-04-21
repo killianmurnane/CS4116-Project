@@ -4,12 +4,18 @@ class MessagesRepository
 {
   public function __construct(private PDO $pdo) {}
 
-  public function getMessages(int $matchId): ?array
+  public function getMessages(int $matchId, ?int $limit = null): ?array
   {
-    $stmt = $this->pdo->prepare(
-      'SELECT * FROM messages WHERE match_id = :matchId ORDER BY created_at ASC',
-    );
-    $stmt->execute(['matchId' => $matchId]);
+    $query = 'SELECT * FROM messages WHERE match_id = :matchId ORDER BY created_at ASC';
+    if ($limit !== null) {
+      $query .= ' LIMIT :limit';
+    }
+    $stmt = $this->pdo->prepare($query);
+    $stmt->bindValue(':matchId', $matchId, PDO::PARAM_INT);
+    if ($limit !== null) {
+      $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    }
+    $stmt->execute();
     $result = $stmt->fetchAll();
     return $result ?: null;
   }

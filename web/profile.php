@@ -89,6 +89,7 @@ $profileCompletion = (int) round((array_sum($completionChecks) / count($completi
                     } else {
                       echo '#';
                     } ?>">Profile</a>
+                    <a class="menu-item" href="/support.php">Support</a>
                     <?php if (isAdmin()): ?>
                       <a class="menu-item" href="/admin.php">Admin</a>
                     <?php endif; ?>

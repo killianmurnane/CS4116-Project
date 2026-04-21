@@ -143,6 +143,22 @@ CREATE TABLE `profiles` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `reports`
+--
+
+CREATE TABLE `reports` (
+  `report_id` int NOT NULL,
+  `reporter_id` int NOT NULL,
+  `reported_id` int NOT NULL,
+  `reason` varchar(100) NOT NULL,
+  `message` text NOT NULL,
+  `ai_overview` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -247,6 +263,14 @@ ALTER TABLE `profiles`
   ADD KEY `location` (`location`);
 
 --
+-- Indexes for table `reports`
+--
+ALTER TABLE `reports`
+  ADD PRIMARY KEY (`report_id`),
+  ADD KEY `reporter_id` (`reporter_id`),
+  ADD KEY `reported_id` (`reported_id`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -318,6 +342,12 @@ ALTER TABLE `personal_records`
 --
 ALTER TABLE `profiles`
   MODIFY `profile_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `reports`
+--
+ALTER TABLE `reports`
+  MODIFY `report_id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -433,6 +463,13 @@ ALTER TABLE `personal_records`
 ALTER TABLE `profiles`
   ADD CONSTRAINT `profiles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
   ADD CONSTRAINT `profiles_ibfk_2` FOREIGN KEY (`location`) REFERENCES `locations` (`id`);
+
+--
+-- Constraints for table `reports`
+--
+ALTER TABLE `reports`
+  ADD CONSTRAINT `reports_ibfk_1` FOREIGN KEY (`reporter_id`) REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `reports_ibfk_2` FOREIGN KEY (`reported_id`) REFERENCES `users` (`user_id`);
 
 --
 -- Constraints for table `user_exercises`
