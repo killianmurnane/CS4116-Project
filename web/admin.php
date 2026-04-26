@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     } elseif ($action === 'review_report') {
       $reportId = (int) ($_POST['report_id'] ?? 0);
-      if ($reportId > 0) {
+      if ($reportId >= 0) {
         $reportsRepository->reviewReport($reportId);
         $flash = 'Report marked as reviewed.';
       }

@@ -1,60 +1,87 @@
 .reports-card {
   width: 100%;
+  border: 2px solid #ff6b35;
+  background: linear-gradient(135deg, #fff9f5 0%, #fff5f0 100%);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.15);
 }
+
 .reports-list {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
 }
+
 .report-item {
-  border: 1px solid var(--bs-border-color);
+  border: 2px solid #ffe8d9;
   border-radius: 0.7rem;
-  background: var(--bs-white);
+  background: linear-gradient(135deg, #ffffff 0%, #fffbf7 100%);
   padding: 0.9rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.08);
 }
+
+.report-item:hover {
+  border-color: #ff6b35;
+  box-shadow: 0 8px 24px rgba(255, 107, 53, 0.15);
+  background: linear-gradient(135deg, #fffbf8 0%, #fff8f3 100%);
+}
+
 .report-head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.65rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 2px solid #ff6b35;
 }
+
 .report-users {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
 }
+
 .report-content {
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 0.65rem;
   margin-bottom: 0.7rem;
 }
+
 .reports-user-link {
   display: inline-flex;
   align-items: center;
-  padding: 0.35rem 0.6rem;
-  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  border-radius: 4px;
   text-decoration: none;
   font-weight: 600;
-  border: 1px solid var(--bs-border-color);
-  background: var(--bs-light);
-  color: inherit;
+  border: 2px solid #ff6b35;
+  background: linear-gradient(135deg, #ff6b35, #ffa500);
+  color: #ffffff;
+  transition: all 0.3s ease;
 }
+
 .reports-user-link:hover {
-  color: inherit;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(255, 107, 53, 0.3);
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #ff5520, #ff9000);
 }
+
 .reports-scrollbox {
   max-height: 120px;
   overflow-y: auto;
   white-space: pre-wrap;
   word-break: break-word;
-  border: 1px solid var(--bs-border-color);
+  border: 2px solid #ff6b35;
   border-radius: 8px;
-  padding: 0.5rem 0.65rem;
-  background: var(--bs-white);
+  padding: 0.75rem 0.875rem;
+  background: linear-gradient(180deg, #ffffff 0%, #fffbf8 100%);
+  font-size: 0.95rem;
 }
 @media (max-width: 991px) {
   .report-content {
