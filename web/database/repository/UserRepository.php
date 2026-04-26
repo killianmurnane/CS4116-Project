@@ -122,8 +122,15 @@ class UserRepository
    * Get all users
    * With pagination
    */
-  public function getUsers(int $limit = 5, int $offset = 0): array
+  public function getUsers(int $limit = 5, int $offset = 0, string $sortBy = 'joined'): array
   {
+    $orderBy = match ($sortBy) {
+      'name' => 'p.given_name ASC, p.family_name ASC',
+      'age' => 'age ASC',
+      'joined' => 'u.created_at DESC',
+      default => 'u.created_at DESC',
+    };
+
     $stmt = $this->pdo->prepare(
       "SELECT u.user_id, p.given_name, p.family_name, l.location AS location, p.description, p.dob,
       TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) AS age
@@ -131,7 +138,7 @@ class UserRepository
        LEFT JOIN profiles p ON p.user_id = u.user_id
        LEFT JOIN locations l ON l.id = p.location
       WHERE u.type != 'banned' AND p.user_id IS NOT NULL AND u.user_id != {$_SESSION['user_id']}
-       ORDER BY u.created_at DESC
+       ORDER BY {$orderBy}
        LIMIT :limit OFFSET :offset",
     );
 
@@ -157,7 +164,15 @@ class UserRepository
     int $limit = 5,
     int $offset = 0,
     ?int $exercise = null,
+    string $sortBy = 'joined',
   ) {
+    $orderBy = match ($sortBy) {
+      'name' => 'p.given_name ASC, p.family_name ASC',
+      'age' => 'age ASC',
+      'joined' => 'u.created_at DESC',
+      default => 'u.created_at DESC',
+    };
+
     $conditions = [];
     $params = ['limit' => $limit, 'offset' => $offset];
 
@@ -219,7 +234,7 @@ class UserRepository
               WHERE " .
       implode(' AND ', $conditions) .
       " AND p.user_id IS NOT NULL AND u.user_id != {$_SESSION['user_id']}
-              ORDER BY u.created_at DESC" .
+              ORDER BY {$orderBy}" .
       ' LIMIT :limit OFFSET :offset';
 
     $stmt = $this->pdo->prepare($sql);

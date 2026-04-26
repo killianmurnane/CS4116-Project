@@ -33,6 +33,7 @@ $selectedLocation = isset($_GET['location']) ? (int) $_GET['location'] : 0;
 $selectedGender =
   isset($_GET['gender']) && $_GET['gender'] !== '' ? trim((string) $_GET['gender']) : null;
 $selectedExercise = isset($_GET['exercise']) ? (int) $_GET['exercise'] : 0;
+$sortBy = isset($_GET['sort']) ? trim((string) $_GET['sort']) : 'joined';
 
 $hasFilters =
   $selectedGoal > 0 ||
@@ -58,10 +59,11 @@ if ($hasFilters) {
     $limit,
     $offset,
     $selectedExercise > 0 ? $selectedExercise : null,
+    $sortBy,
   );
 } else {
   // Show all users with profiles if no filter selected
-  $users = $userRepository->getUsers($limit, $offset);
+  $users = $userRepository->getUsers($limit, $offset, $sortBy);
 }
 
 // Fetch likes for user
@@ -225,104 +227,119 @@ if (isset($_GET['error'])) {
                         <h3 class="mb-2">Find Training Partners</h3>
                         <p class="text-muted mb-3">Filter by name, goal, or age to find your perfect gym partner.</p>
                         <form method="GET" action="/search.php">
-                            <div class="row g-2 justify-content-center">
-                                <div class="col-md-3">
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        name="name"
-                                        placeholder="First name..."
-                                        value="<?= htmlspecialchars($searchName) ?>"
-                                    />
-                                </div>
-                                <div class="col-md-3">
-                                    <select class="form-select" name="goal">
-                                        <option value="0">Goal: Any</option>
-                                        <?php foreach ($goals as $goal): ?>
-                                            <option value="<?= $goal[
-                                              'goal_id'
-                                            ] ?>" <?= $selectedGoal === (int) $goal['goal_id']
-  ? 'selected'
-  : '' ?>>
-                                                <?= htmlspecialchars($goal['goal_name']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <select class="form-select" name="location">
-                                        <option value="0">Location: Any</option>
-                                        <?php foreach ($locations as $location): ?>
-                                            <option value="<?= htmlspecialchars(
-                                              $location['id'],
-                                            ) ?>" <?= $selectedLocation === (int) $location['id']
-  ? 'selected'
-  : '' ?>>
-                                                <?= htmlspecialchars($location['location']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <select class="form-select" name="gender">
-                                        <option value="">Gender: Any</option>
-                                        <option value="male" <?= isset($selectedGender) &&
-                                        $selectedGender === 'male'
-                                          ? 'selected'
-                                          : '' ?>>Male</option>
-                                        <option value="female" <?= isset($selectedGender) &&
-                                        $selectedGender === 'female'
-                                          ? 'selected'
-                                          : '' ?>>Female</option>
-                                        <option value="other" <?= isset($selectedGender) &&
-                                        $selectedGender === 'other'
-                                          ? 'selected'
-                                          : '' ?>>Other</option>
-                                    </select>
-                                </div>
-                                    <div class="row g-2 justify-content-center mt-1">
-                                    
-                                    <div class="col-md-3">
-                                    <select class="form-select" name="exercise">
-                                        <option value="0">Exercise: Any</option>
-                                        <?php foreach ($exercises as $exercise): ?>
-                                            <option value="<?= $exercise[
-                                              'exercise_id'
-                                            ] ?>" <?= $selectedExercise ===
-(int) $exercise['exercise_id']
-  ? 'selected'
-  : '' ?>>
-                                                <?= htmlspecialchars($exercise['exercise_name']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                      <div class="col-md-2">
-                                    <input
-                                        type="number"
-                                        class="form-control"
-                                        name="min_age"
-                                        placeholder="Min age"
-                                        min="18"
-                                        max="100"
-                                        value="<?= $minAge !== null ? $minAge : '' ?>"
-                                    />
-                                </div>
-                                <div class="col-md-2">
-                                    <input
-                                        type="number"
-                                        class="form-control"
-                                        name="max_age"
-                                        placeholder="Max age"
-                                        min="18"
-                                        max="100"
-                                        value="<?= $maxAge !== null ? $maxAge : '' ?>"
-                                    />
-                                </div>
-                                <div class="col-md-2">
-                                    <button class="btn btn-dark w-100" type="submit">Search</button>
-                                </div>
+                          <div class="row g-2 justify-content-center">
+                            <div class="col-md-3">
+                              <input
+                                type="text"
+                                class="form-control"
+                                name="name"
+                                placeholder="First name..."
+                                value="<?= htmlspecialchars($searchName) ?>"
+                              />
                             </div>
+                            <div class="col-md-3">
+                              <select class="form-select" name="goal">
+                                <option value="0">Goal: Any</option>
+                                <?php foreach ($goals as $goal): ?>
+                                  <option value="<?= $goal['goal_id'] ?>" <?= $selectedGoal ===
+(int) $goal['goal_id']
+  ? 'selected'
+  : '' ?>>
+                                    <?= htmlspecialchars($goal['goal_name']) ?>
+                                  </option>
+                                <?php endforeach; ?>
+                              </select>
+                            </div>
+                            <div class="col-md-3">
+                              <select class="form-select" name="location">
+                                <option value="0">Location: Any</option>
+                                <?php foreach ($locations as $location): ?>
+                                  <option value="<?= htmlspecialchars(
+                                    $location['id'],
+                                  ) ?>" <?= $selectedLocation === (int) $location['id']
+  ? 'selected'
+  : '' ?>>
+                                    <?= htmlspecialchars($location['location']) ?>
+                                  </option>
+                                <?php endforeach; ?>
+                              </select>
+                            </div>
+                            <div class="col-md-3">
+                              <select class="form-select" name="gender">
+                                <option value="">Gender: Any</option>
+                                <option value="male" <?= isset($selectedGender) &&
+                                $selectedGender === 'male'
+                                  ? 'selected'
+                                  : '' ?>>Male</option>
+                                <option value="female" <?= isset($selectedGender) &&
+                                $selectedGender === 'female'
+                                  ? 'selected'
+                                  : '' ?>>Female</option>
+                                <option value="other" <?= isset($selectedGender) &&
+                                $selectedGender === 'other'
+                                  ? 'selected'
+                                  : '' ?>>Other</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div class="row g-2 justify-content-center mt-1">
+                            <div class="col-md-3">
+                              <select class="form-select" name="exercise">
+                                <option value="0">Exercise: Any</option>
+                                <?php foreach ($exercises as $exercise): ?>
+                                  <option value="<?= $exercise[
+                                    'exercise_id'
+                                  ] ?>" <?= $selectedExercise === (int) $exercise['exercise_id']
+  ? 'selected'
+  : '' ?>>
+                                    <?= htmlspecialchars($exercise['exercise_name']) ?>
+                                  </option>
+                                <?php endforeach; ?>
+                              </select>
+                            </div>
+                            <div class="col-md-3">
+                              <select class="form-select" name="sort">
+                                <option value="joined" <?= $sortBy === 'joined'
+                                  ? 'selected'
+                                  : '' ?>>Sort: Joined</option>
+                                <option value="name" <?= $sortBy === 'name'
+                                  ? 'selected'
+                                  : '' ?>>Sort: Name (A-Z)</option>
+                                <option value="age" <?= $sortBy === 'age'
+                                  ? 'selected'
+                                  : '' ?>>Sort: Age</option>
+                              </select>
+                            </div>
+                            <div class="col-md-2">
+                              <input
+                                type="number"
+                                class="form-control"
+                                name="min_age"
+                                placeholder="Min age"
+                                min="18"
+                                max="100"
+                                value="<?= $minAge !== null ? $minAge : '' ?>"
+                              />
+                            </div>
+                            <div class="col-md-2">
+                              <input
+                                type="number"
+                                class="form-control"
+                                name="max_age"
+                                placeholder="Max age"
+                                min="18"
+                                max="100"
+                                value="<?= $maxAge !== null ? $maxAge : '' ?>"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="row justify-content-center mt-3">
+                            <div class="col-md-3 d-grid">
+                              <button class="btn btn-dark" type="submit">Search</button>
+                            </div>
+                          </div>
                         </form>
                     </div>
                 </section>
