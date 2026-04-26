@@ -1,46 +1,9 @@
-# Search, Likes, and Matches
+Search is only available to logged-in users. Results are paginated with a limit of 5 users per page. The Load More button increments the page and keeps current filters applied. If no filters are applied the site shows recent users with profiles. Banned users and the currently logged-in user are excluded from search results.
 
-## Search page (`/search.php`)
+Available filters include first name search goal location gender exercise minimum age and maximum age.
 
-- Search is only available to logged-in users.
-- Results are paginated with a limit of 5 users per page.
-- `Load More` increments the page offset and keeps current filters.
-- If no filters are applied, the site shows recent users with profiles.
-- Banned users are excluded from search results.
-- The current logged-in user is excluded from search results.
+Each search result card shows the user's name or user id age calculated from date of birth location and short description preview. Result cards include a View Profile button a heart button to like the user and a Message button if you are already matched with that user. A check icon appears if you have already liked that profile.
 
-## Available filters
+Likes are submitted through the like helper with the liked user id. Duplicate likes are rejected and return an error. If the other user has already liked you back the system creates a match. If a like succeeds without mutual interest the UI reports a normal like success state.
 
-- first name search
-- goal
-- location
-- gender
-- exercise
-- minimum age
-- maximum age
-
-## Result card behavior
-
-Each result can show:
-
-- name or fallback user id
-- age (calculated from date of birth)
-- location
-- short description preview
-- `View Profile` button
-- a heart button to like the user
-- a `Message` button if the users are already matched
-- a check icon if the current user already liked that profile
-
-## Like behavior
-
-- Likes are submitted to `/helpers/like.php` with `liked_user_id`.
-- Duplicate likes are rejected and return `like_exists`.
-- If the other user has already liked back, the system creates a match and returns a match success state.
-- If a like succeeds without mutual interest, the UI reports a normal like success state.
-
-## Match rules
-
-- A match is created when two users like each other.
-- Matches are stored as rows containing `user1_id` and `user2_id`.
-- Search uses existing matches to show a direct `Message` button for matched users.
+A match is created when two users like each other. Matches are stored as rows containing the two user ids. Search uses existing matches to show a direct Message button for matched users.

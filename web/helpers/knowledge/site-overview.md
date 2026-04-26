@@ -1,32 +1,7 @@
-# Site Overview
+GymDate is a student gym partner matching website that helps users find training partners, message with matched partners, and maintain a fitness profile with goals, exercises, and availability.
 
-GymDate is a student gym partner matching website.
+The main pages are login.php for authentication, index.php for the dashboard, search.php to discover users, profile.php to view profiles, edit-profile.php to update your profile, message.php to chat with matches, and admin.php for administrative functions.
 
-## Main purpose
+Most pages require users to be logged in. The admin page is restricted to admin users only. Logged-out users trying to access protected pages are redirected to the login page.
 
-- Help users find training partners.
-- Let matched users message each other.
-- Let users maintain a fitness profile with goals, exercises, and availability.
-
-## Main pages
-
-- `/login.php`: login and registration.
-- `/index.php`: logged-in dashboard and activity summary.
-- `/search.php`: discover users and apply filters.
-- `/profile.php`: view a profile.
-- `/edit-profile.php`: update the current user's profile.
-- `/message.php`: see matches and exchange messages.
-- `/admin.php`: admin-only account and content management.
-
-## Navigation rules
-
-- Most pages require login.
-- Admin page requires the user to have admin role.
-- Logged-out users are redirected to the login page if they try to access protected pages.
-
-## Core data shown across the site
-
-- User account email and role.
-- Profile data such as name, gender, date of birth, location, bio, and preferred sessions.
-- Goal and exercise tags.
-- Likes, matches, and messages.
+Core data shown throughout the site includes user email and role, profile information like name gender date of birth location bio and preferred sessions, goal and exercise tags, and likes matches and messages.
