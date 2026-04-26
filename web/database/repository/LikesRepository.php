@@ -9,6 +9,9 @@ class LikesRepository
 {
   public function __construct(private PDO $pdo) {}
 
+  /**
+   * Checks if there is a reciprocal like from likedId to likerId, indicating a match
+   */
   private function hasReciprocalLike(int $likerId, int $likedId): bool
   {
     $stmt = $this->pdo->prepare(
@@ -22,7 +25,9 @@ class LikesRepository
     return (bool) $stmt->fetchColumn();
   }
 
-  // Gets all likes where the user is either the liker or the liked
+  /**
+   * Gets all likes involving the given user, both as a liker and as a liked user
+   */
   public function findLikeById(int $id): ?array
   {
     $likedBy = $this->pdo->prepare('SELECT * from likes where liker_id = :id');
@@ -39,7 +44,9 @@ class LikesRepository
     ];
   }
 
-  // Gets users who liked the given user
+  /**
+   * Gets users who liked the given user
+   */
   public function getLikedByUsers(int $likedId): ?array
   {
     $stmt = $this->pdo->prepare('SELECT * from likes where liked_id = :id');
@@ -48,7 +55,9 @@ class LikesRepository
     return $result ?: null;
   }
 
-  // Gets users who were liked by the given user
+  /**
+   * Gets users who were liked by the given user
+   */
   public function getLikedUsers(int $likerId): ?array
   {
     $stmt = $this->pdo->prepare('SELECT * from likes where liker_id = :id');
@@ -57,9 +66,11 @@ class LikesRepository
     return $result ?: null;
   }
 
-  // Creates a like from likerId to likedId.
-  // Throws DuplicateLikeException if the like already exists.
-  // Throws MatchError if a reciprocal like exists, indicating a match.
+  /**
+   * Creates a like from likerId to likedId
+   * If a like already exists, throws a DuplicateLikeException
+   * If a reciprocal like exists, creates a match and throws a MatchError for match handling
+   */
   public function createLike(int $likerId, int $likedId): void
   {
     try {

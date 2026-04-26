@@ -2,40 +2,41 @@
 class GeminiHelper
 {
   private const GEMINI_MODEL = 'gemini-2.5-flash';
-  private const CHAT_MAX_OUTPUT_TOKENS = 2000;
-  private const ADMIN_MAX_OUTPUT_TOKENS = 2000;
+  private const MAX_TOKENS = 2000;
   private const KNOWLEDGE_DIR = __DIR__ . '/knowledge';
+  private const ENV_FILE = __DIR__ . '/../.env';
 
   private string $apiKey;
   private array $docs = [];
 
-  public function __construct(?string $apiKey = null)
+  /**
+   * Constructor loads API key and knowledge documents
+   */
+  public function __construct()
   {
-    // Load .env file if it exists
-    $envPath = dirname(__DIR__) . '/.env';
-    if ($apiKey === null && file_exists($envPath)) {
-      $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (file_exists(self::ENV_FILE)) {
+      $lines = file(self::ENV_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
       foreach ($lines as $line) {
+        // Ignore comments
         if (str_starts_with($line, '#')) {
           continue;
         }
+        // Ignore lines with no '='
         if (strpos($line, '=') === false) {
           continue;
         }
+
+        // Parse key-value pairs
         [$key, $value] = explode('=', $line, 2);
         $key = trim($key);
         $value = trim($value);
         putenv("{$key}={$value}");
-        if (!isset($_ENV[$key])) {
-          $_ENV[$key] = $value;
-        }
       }
     }
 
-    $this->apiKey =
-      $apiKey ??
-      (string) ($_ENV['GEMINI_API_KEY'] ??
-        ($_SERVER['GEMINI_API_KEY'] ?? getenv('GEMINI_API_KEY') ?: ''));
+    // Set the API key from environment variable
+    $this->apiKey = (string) getenv('GEMINI_API_KEY');
     if (empty($this->apiKey)) {
       throw new RuntimeException(
         'GEMINI_API_KEY not set in environment. Please check your .env file.',
@@ -48,10 +49,8 @@ class GeminiHelper
   /**
    * Call Gemini generateContent endpoint
    */
-  private function generateWithGemini(
-    string $prompt,
-    int $maxOutputTokens = self::CHAT_MAX_OUTPUT_TOKENS,
-  ): array {
+  private function generateWithGemini(string $prompt): array
+  {
     $endpoint = sprintf(
       'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s',
       self::GEMINI_MODEL,
@@ -61,11 +60,12 @@ class GeminiHelper
     $payload = [
       'contents' => [['parts' => [['text' => $prompt]]]],
       'generationConfig' => [
-        'maxOutputTokens' => $maxOutputTokens,
+        'maxOutputTokens' => self::MAX_TOKENS,
         'temperature' => 0.2,
       ],
     ];
 
+    // Use cURL to make the API request
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
       CURLOPT_POST => true,
@@ -77,9 +77,8 @@ class GeminiHelper
     ]);
 
     $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $httpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     $curlError = curl_error($ch);
-    curl_close($ch);
 
     if ($curlError) {
       throw new RuntimeException("Gemini API curl error: $curlError");
@@ -131,29 +130,23 @@ class GeminiHelper
   private function cleanMarkdown(string $markdown): string
   {
     $text = (string) $markdown;
-    $text = preg_replace('/^#{1,6}\s+/m', '', $text);
-    $text = preg_replace('/`{1,3}([^`]*)`{1,3}/', '$1', $text);
-    $text = preg_replace('/\*\*([^*]+)\*\*/', '$1', $text);
-    $text = preg_replace('/\*([^*]+)\*/', '$1', $text);
-    $text = preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '$1', $text);
-    $text = preg_replace('/^>\s?/m', '', $text);
-    $text = preg_replace('/^[-*+]\s+/m', '', $text);
-    $text = str_replace("\r", '', $text);
-    $text = preg_replace('/\n{2,}/', "\n", $text);
+    $text = preg_replace('/^#{1,6}\s+/m', '', $text); // Remove headers
+    $text = str_replace("\r", '', $text); // Normalize line endings
     return trim($text);
   }
 
   /**
    * Load knowledge documents from markdown files
    */
-  private function loadKnowledgeFromDirectory(string $dir = self::KNOWLEDGE_DIR): void
+  private function loadKnowledgeFromDirectory(): void
   {
-    if (!is_dir($dir)) {
+    $knowledgeDir = self::KNOWLEDGE_DIR;
+    if (!is_dir($knowledgeDir)) {
       return;
     }
 
     $this->docs = [];
-    $files = new DirectoryIterator($dir);
+    $files = new DirectoryIterator($knowledgeDir);
 
     foreach ($files as $file) {
       if (!$file->isFile() || $file->getExtension() !== 'md') {
@@ -190,8 +183,7 @@ class GeminiHelper
       return trim($m[1]);
     }
 
-    $base = pathinfo($fileName, PATHINFO_FILENAME);
-    return ucwords(str_replace(['-', '_'], ' ', $base));
+    return pathinfo($fileName, PATHINFO_FILENAME);
   }
 
   /**
@@ -247,13 +239,12 @@ class GeminiHelper
    */
   public function generateResponse(string $userMessage): string
   {
-    // Simple single-turn response (no session state needed for web handlers)
     $prompt = $this->constructPrompt(
       [['role' => 'user', 'content' => $userMessage]],
       $this->retrieveRelevantDocs($userMessage),
     );
 
-    $result = $this->generateWithGemini($prompt, self::CHAT_MAX_OUTPUT_TOKENS);
+    $result = $this->generateWithGemini($prompt, self::MAX_TOKENS);
     return $result['text'];
   }
 
@@ -269,7 +260,7 @@ class GeminiHelper
     2. What is the issue (if any)?
     3. Recommended action.
 
-    Keep your response under 150 words, be objective and factual.
+    Keep your response under 200 words, be objective and factual.
 
     Context:
     $context
@@ -277,7 +268,7 @@ class GeminiHelper
     Summary:
     PROMPT;
 
-    $result = $this->generateWithGemini($prompt, self::ADMIN_MAX_OUTPUT_TOKENS);
+    $result = $this->generateWithGemini($prompt, self::MAX_TOKENS);
     return $result['text'];
   }
 }

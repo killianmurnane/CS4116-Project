@@ -4,11 +4,45 @@ declare(strict_types=1);
 
 require __DIR__ . '/helpers/init.php';
 require __DIR__ . '/helpers/auth.php';
+require __DIR__ . '/helpers/gemini.php';
 
 requireLogin();
 
 if (!isset($_SESSION['support_chat_messages']) || !is_array($_SESSION['support_chat_messages'])) {
   $_SESSION['support_chat_messages'] = [];
+}
+
+$errorMessage = '';
+
+// Handle POST request for chat messages
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $action = trim((string) ($_POST['action'] ?? 'send'));
+
+  if ($action === 'reset') {
+    $_SESSION['support_chat_messages'] = [];
+  } else {
+    $userMessage = trim((string) ($_POST['message'] ?? ''));
+    if ($userMessage !== '') {
+      try {
+        // Add user message to history
+        $_SESSION['support_chat_messages'][] = ['role' => 'user', 'content' => $userMessage];
+
+        // Generate AI response
+        $gemini = new GeminiHelper();
+        $assistantReply = $gemini->generateResponse($userMessage);
+
+        // Add assistant response to history
+        $_SESSION['support_chat_messages'][] = [
+          'role' => 'assistant',
+          'content' => $assistantReply,
+        ];
+      } catch (Throwable $exception) {
+        $errorMessage = 'Error generating response: ' . $exception->getMessage();
+        // Remove the user message since response failed
+        array_pop($_SESSION['support_chat_messages']);
+      }
+    }
+  }
 }
 
 $chatMessages = $_SESSION['support_chat_messages'];
@@ -74,17 +108,18 @@ $welcomeName = $givenName !== '' ? $givenName : 'there';
 						<?php endif; ?>
 					</div>
 
-					<form id="support-form" class="w-100">
-						<div id="support-error" class="alert alert-danger d-none" role="alert"></div>
-						<div class="support-actions">
-							<input id="support-message" class="form-control" type="text" name="message" placeholder="Ask about the site..." required />
-							<button id="support-submit" class="btn btn-dark" type="submit">Send</button>
-							<button id="support-reset" class="btn btn-outline-secondary" type="button">Reset</button>
-						</div>
-					</form>
+					<div class="w-100">
+						<?php if ($errorMessage !== ''): ?>
+							<div class="alert alert-danger" role="alert"><?= htmlspecialchars($errorMessage) ?></div>
+						<?php endif; ?>
+						<form method="POST" class="d-flex gap-2 w-100">
+							<input class="form-control" type="text" name="message" placeholder="Ask about the site..." autofocus />
+							<button class="btn btn-dark text-nowrap" type="submit" name="action" value="send">Send</button>
+							<button class="btn btn-outline-secondary text-nowrap" type="submit" name="action" value="reset">Reset</button>
+						</form>
+					</div>
 				</section>
 			</main>
 		</div>
-		<script src="scripts/support.js"></script>
 	</body>
 </html>

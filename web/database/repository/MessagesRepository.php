@@ -4,6 +4,9 @@ class MessagesRepository
 {
   public function __construct(private PDO $pdo) {}
 
+  /**
+   * Gets messages for a given match, optionally limited to a certain number of recent messages
+   */
   public function getMessages(int $matchId, ?int $limit = null): ?array
   {
     $query = 'SELECT * FROM messages WHERE match_id = :matchId ORDER BY created_at ASC';
@@ -20,6 +23,9 @@ class MessagesRepository
     return $result ?: null;
   }
 
+  /**
+   * Creates a new message in a match
+   */
   public function createMessage(int $matchId, int $senderId, string $message_text): void
   {
     $stmt = $this->pdo->prepare(

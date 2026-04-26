@@ -11,6 +11,9 @@ class UserRepository
 {
   public function __construct(private PDO $pdo) {}
 
+  /**
+   * Creates a new user and their associated profile
+   */
   public function createUser(
     string $email,
     string $password,
@@ -20,7 +23,7 @@ class UserRepository
     string $gender,
     DateTime $dob,
     string $location,
-  ) {
+  ): ?array {
     $stmt = $this->pdo->prepare(
       'INSERT INTO users (email, password, type, created_at) VALUES (:email, :password, :type, CURRENT_TIMESTAMP)',
     );
@@ -43,6 +46,9 @@ class UserRepository
     return $this->findById((int) $this->pdo->lastInsertId());
   }
 
+  /**
+   * Gets a user by their ID
+   */
   public function findById(int $id): ?array
   {
     $stmt = $this->pdo->prepare(
@@ -58,6 +64,9 @@ class UserRepository
     return $user ?: null;
   }
 
+  /**
+   * Gets a user by their email address
+   */
   public function findByEmail(string $email): ?array
   {
     $stmt = $this->pdo->prepare(
@@ -73,6 +82,9 @@ class UserRepository
     return $user ?: null;
   }
 
+  /**
+   * Updates a user's email, password, or type
+   */
   public function updateUser(int $userId, ?string $email, ?string $password, ?Type $type): ?array
   {
     $fields = [];
@@ -104,10 +116,12 @@ class UserRepository
     return $this->findById($userId);
   }
 
-  // Methods for getting users with profiles and other attributes
-  // While supporting pagination and filtering
+  // #region List/Filter
 
-  // Get all users (with pagination)
+  /**
+   * Get all users
+   * With pagination
+   */
   public function getUsers(int $limit = 5, int $offset = 0): array
   {
     $stmt = $this->pdo->prepare(
@@ -128,7 +142,10 @@ class UserRepository
     return $stmt->fetchAll();
   }
 
-  // Get users with filtering options and pagination
+  /**
+   * Filters users based on input
+   * With pagination
+   */
   public function filterUsers(
     ?string $type = null,
     ?string $gender = null,
@@ -216,4 +233,6 @@ class UserRepository
     $stmt->execute();
     return $stmt->fetchAll();
   }
+
+  // #endregion
 }

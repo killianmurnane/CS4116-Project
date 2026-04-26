@@ -4,17 +4,18 @@ class GoalsRepository
 {
   public function __construct(private PDO $pdo) {}
 
-  public function getGoals(): array
-  {
-    return $this->getAllGoals();
-  }
-
+  /**
+   * Returns a list of all goals that a user can select
+   */
   public function getAllGoals(): array
   {
     $stmt = $this->pdo->query('SELECT goal_id, goal_name FROM goals ORDER BY goal_name');
     return $stmt->fetchAll();
   }
 
+  /**
+   * Returns a list of goals that a user has selected
+   */
   public function getUserGoals(int $userId): array
   {
     $stmt = $this->pdo->prepare(
@@ -28,6 +29,9 @@ class GoalsRepository
     return $stmt->fetchAll();
   }
 
+  /**
+   * Adds a goal to a user's profile
+   */
   public function addUserGoal(int $userId, int $goalId): void
   {
     $stmt = $this->pdo->prepare(
@@ -39,6 +43,9 @@ class GoalsRepository
     ]);
   }
 
+  /**
+   * Removes a goal from a user's profile
+   */
   public function removeUserGoal(int $userId, int $goalId): void
   {
     $stmt = $this->pdo->prepare(

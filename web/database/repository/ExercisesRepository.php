@@ -4,17 +4,18 @@ class ExercisesRepository
 {
   public function __construct(private PDO $pdo) {}
 
-  public function getExercises(): array
-  {
-    return $this->getAllExercises();
-  }
-
+  /**
+   * Returns a list of all exercises that a user can select
+   */
   public function getAllExercises(): array
   {
     $stmt = $this->pdo->query('SELECT * FROM exercises ORDER BY exercise_name');
     return $stmt->fetchAll();
   }
 
+  /**
+   * Returns a list of exercises that a user has selected
+   */
   public function getUserExercises(int $userId): array
   {
     $stmt = $this->pdo->prepare(
@@ -28,6 +29,9 @@ class ExercisesRepository
     return $stmt->fetchAll();
   }
 
+  /**
+   * Adds an exercise to a user's profile
+   */
   public function addUserExercise(int $userId, int $exerciseId): void
   {
     $stmt = $this->pdo->prepare(
@@ -39,6 +43,9 @@ class ExercisesRepository
     ]);
   }
 
+  /**
+   * Removes an exercise from a user's profile
+   */
   public function removeUserExercise(int $userId, int $exerciseId): void
   {
     $stmt = $this->pdo->prepare(

@@ -56,7 +56,7 @@ if (isset($_GET['error'])) {
                 </div>
 
                                 <?php if (isset($error) && $error): ?>
-                                        <div class="alert alert-danger" role="alert"><?= e(
+                                        <div class="alert alert-danger" role="alert"><?= htmlspecialchars(
                                           $error,
                                         ) ?></div>
                 <?php endif; ?>
@@ -128,9 +128,9 @@ if (isset($_GET['error'])) {
                         <select class="form-control login-input" id="location" name="location" required>
                             <option value="" selected disabled>Select county</option>
                             <?php foreach ($locations as $location): ?>
-                                                                <option value="<?= e(
+                                                                <option value="<?= htmlspecialchars(
                                                                   $location['id'] ?? '',
-                                                                ) ?>"><?= e(
+                                                                ) ?>"><?= htmlspecialchars(
   $location['location'] ?? '',
 ) ?></option>
                             <?php endforeach; ?>

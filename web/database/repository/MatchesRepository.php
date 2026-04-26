@@ -4,6 +4,9 @@ class MatchesRepository
 {
   public function __construct(private PDO $pdo) {}
 
+  /**
+   * Gets all matches involving the given user
+   */
   public function getMatches(int $userId): ?array
   {
     $stmt = $this->pdo->prepare(
@@ -14,6 +17,9 @@ class MatchesRepository
     return $result ?: null;
   }
 
+  /**
+   * Creates a match between user1Id and user2Id
+   */
   public function createMatch(int $user1Id, int $user2Id): void
   {
     $stmt = $this->pdo->prepare(

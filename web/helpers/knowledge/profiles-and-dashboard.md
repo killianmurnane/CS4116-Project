@@ -41,3 +41,7 @@ Profile completion is based on whether the following are present:
 - Users can add or remove multiple goals and exercises.
 - Updating the profile also replaces the user's goal and exercise associations.
 - Changes are wrapped in a database transaction.
+
+## Complete profile (`/edit-profile.php`)
+
+Users can 'complete' their profile by filling in the fields in the edit profile page accessed from the profile page (`/profile.php`)

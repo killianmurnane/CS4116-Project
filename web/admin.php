@@ -372,7 +372,7 @@ $buildAdminUrl = function (array $params = []) use ($searchTerm, $selectedUserId
                                       ($listedUser['type'] ?? '') === 'banned'
                                         ? 'bg-danger'
                                         : (($listedUser['type'] ?? '') === 'admin'
-                                          ? 'bg-dark'
+                                          ? 'bg-primary'
                                           : 'bg-secondary');
                                     ?>
                                     <a class="border rounded p-3 text-decoration-none <?= $isSelected
@@ -422,7 +422,7 @@ $buildAdminUrl = function (array $params = []) use ($searchTerm, $selectedUserId
                               ($selectedUser['type'] ?? '') === 'banned'
                                 ? 'bg-danger'
                                 : (($selectedUser['type'] ?? '') === 'admin'
-                                  ? 'bg-dark'
+                                  ? 'bg-primary'
                                   : 'bg-secondary');
                             ?>
                             <div class="d-flex justify-content-between align-items-start w-100 mb-3">

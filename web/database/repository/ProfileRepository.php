@@ -6,6 +6,9 @@ class ProfileRepository
 
   public const ALLOWED_GENDERS = ['male', 'female', 'other'];
 
+  /**
+   * Finds a profile by user ID, including the location name
+   */
   public function findById(int $id): ?array
   {
     $stmt = $this->pdo->prepare(
@@ -21,6 +24,9 @@ class ProfileRepository
     return $profile ?: null;
   }
 
+  /**
+   * Creates a new profile for a user
+   */
   public function createProfile(
     int $userId,
     string $givenName,
@@ -45,6 +51,9 @@ class ProfileRepository
     return $this->findById($userId);
   }
 
+  /**
+   * Updates an existing profile for a user
+   */
   public function updateProfile(
     int $userId,
     string $givenName,

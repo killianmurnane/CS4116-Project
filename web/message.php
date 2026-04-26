@@ -21,6 +21,20 @@ if (isset($_GET['error'])) {
   };
 }
 
+if (isset($_GET['reportError'])) {
+  $error = match ($_GET['reportError']) {
+    'invalid_method' => 'Invalid request method.',
+    'invalid_input' => 'Please select a user and enter a reason and message for the report.',
+    'invalid_target' => 'You cannot report yourself.',
+    'failed' => 'Failed to submit report. Please try again later.',
+    default => 'An unknown error occurred while submitting your report.',
+  };
+}
+
+if (isset($_GET['reportSuccess'])) {
+  $successMessage = 'Report submitted successfully. Thank you for helping us keep GymDate safe!';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $matchId =
     isset($_POST['match_id']) && ctype_digit((string) $_POST['match_id'])
@@ -32,9 +46,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $matches ?? [],
   );
 
+  // Redact phone numbers by masking each digit with '#'
+  $phonePresent = (bool) preg_match('/\+?[\d\s\-().]{7,20}\d/', $messageText);
+  if ($phonePresent) {
+    $messageText =
+      preg_replace_callback(
+        '/\+?[\d\s\-().]{7,20}\d/',
+        function (array $matches): string {
+          return preg_replace('/\d/', '#', $matches[0]) ?? $matches[0];
+        },
+        $messageText,
+      ) ?? $messageText;
+  }
+
   if ($matchId !== null && $messageText !== '' && in_array($matchId, $allowedMatchIds, true)) {
     $messagesRepository->createMessage($matchId, (int) $_SESSION['user_id'], $messageText);
-    header("Location: /message.php?matchId={$matchId}");
+    header("Location: /message.php?matchId={$matchId}" . ($phonePresent ? '&phone=1' : ''));
     exit();
   }
   if ($matchId !== null && !in_array($matchId, $allowedMatchIds, true)) {
@@ -48,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $selectedMatchId =
   isset($_GET['matchId']) && ctype_digit((string) $_GET['matchId']) ? (int) $_GET['matchId'] : null;
+$phonePresent = isset($_GET['phone']) && $_GET['phone'] === '1';
 
 $selectedMatch = null;
 $messages = [];
@@ -93,31 +121,12 @@ function renderMessage(array $message, int $currentUserId): string
         <!-- CSS -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
         <link rel="stylesheet" href="css/base.css" />
+        <link rel="stylesheet" href="css/messages.css" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css">
         <!-- Other -->
         <title>GymDate</title>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <style>
-          .report-modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.45);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1100;
-            padding: 1rem;
-          }
-
-          .report-modal-card {
-            width: 100%;
-            max-width: 520px;
-            background: #fff;
-            border-radius: 0.75rem;
-            border: 1px solid #ced4da;
-          }
-        </style>
     </head>
     <body>
         <div class="container">
@@ -140,6 +149,10 @@ function renderMessage(array $message, int $currentUserId): string
               <?php if (isset($error)): ?>
                     <div class="alert alert-danger login-banner" role="alert">
                         <?= htmlspecialchars($error) ?>
+                    </div>
+              <?php elseif (isset($successMessage)): ?>
+                    <div class="alert alert-success login-banner" role="alert">
+                        <?= htmlspecialchars($successMessage) ?>
                     </div>
                 <?php endif; ?>
                 <section class="top-rectangle p-4">
@@ -225,6 +238,11 @@ function renderMessage(array $message, int $currentUserId): string
                             <?php endif; ?>
                         </div>
                         <div class="input-group mt-auto">
+                          <?php if ($phonePresent): ?>
+                                <div class="alert alert-warning w-100" role="alert">
+                                  <i class="fas fa-phone-alt"></i> Phone numbers are censored in line with site policies.
+                                </div>
+                              <?php endif; ?>
                             <form method="POST" action="/message.php" class="d-flex w-100 gap-2">
                                 <input type="hidden" name="match_id" value="<?= $selectedMatchId ??
                                   '' ?>" />

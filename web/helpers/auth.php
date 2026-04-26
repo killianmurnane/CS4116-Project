@@ -8,16 +8,25 @@ require_once __DIR__ . '/../database/repository/UserRepository.php';
 
 $allowedGenders = ProfileRepository::ALLOWED_GENDERS;
 
+/**
+ * Checks if a user is currently logged in
+ */
 function isLoggedIn(): bool
 {
   return isset($_SESSION['user_id']);
 }
 
+/**
+ * Checks if the logged-in user is an admin
+ */
 function isAdmin(): bool
 {
   return isset($_SESSION['user_type']) && $_SESSION['user_type'] === Type::ADMIN->value;
 }
 
+/**
+ * Redirects to login page if user is not logged in
+ */
 function requireLogin(): void
 {
   if (!isLoggedIn()) {
@@ -26,6 +35,9 @@ function requireLogin(): void
   }
 }
 
+/**
+ * Redirects to home page if user is not an admin
+ */
 function requireAdmin(): void
 {
   requireLogin();
@@ -36,6 +48,9 @@ function requireAdmin(): void
   }
 }
 
+/**
+ * Logs in a user
+ */
 function loginUser(array $user): void
 {
   session_regenerate_id(true);
@@ -45,6 +60,9 @@ function loginUser(array $user): void
   $_SESSION['user_given'] = isset($user['given_name']) ? (string) $user['given_name'] : null;
 }
 
+/**
+ * Logs out the current user
+ */
 function logoutUser(): void
 {
   $_SESSION = [];
@@ -65,11 +83,14 @@ function logoutUser(): void
   session_destroy();
 }
 
+// #region Login/Out Forms
+
+// Checks if this file is being accessed directly or included as a helper
 $runningAsEntrypoint = realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) === __FILE__;
 if (!$runningAsEntrypoint) {
   return;
 }
-
+// Handle login and registration
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $userRepository = new UserRepository($pdo);
   $action = $_POST['action'] ?? '';
@@ -173,6 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $query = http_build_query($params);
   header('Location: /login.php' . ($query !== '' ? '?' . $query : ''));
   exit();
+  // Handle logout
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
   if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     logoutUser();
@@ -183,3 +205,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   http_response_code(400);
   exit('Invalid request method.');
 }
+
+// #endregion

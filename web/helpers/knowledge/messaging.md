@@ -14,6 +14,7 @@
 - Invalid or unauthorized match ids redirect with `error=invalid_match`.
 - Empty or invalid input redirects with `error=invalid_input`.
 - Successful sends redirect back to the same match conversation.
+- Messages with phone numbers will be changed to #'s to ensure security and safety in line with site policy.
 
 ## Message display
 
