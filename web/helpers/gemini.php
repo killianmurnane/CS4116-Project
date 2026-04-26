@@ -31,16 +31,10 @@ class GeminiHelper
         [$key, $value] = explode('=', $line, 2);
         $key = trim($key);
         $value = trim($value);
-        putenv("{$key}={$value}");
+        if ($key === 'GEMINI_API_KEY') {
+          $this->apiKey = $value;
+        }
       }
-    }
-
-    // Set the API key from environment variable
-    $this->apiKey = (string) getenv('GEMINI_API_KEY');
-    if (empty($this->apiKey)) {
-      throw new RuntimeException(
-        'GEMINI_API_KEY not set in environment. Please check your .env file.',
-      );
     }
 
     $this->loadKnowledgeFromDirectory();
